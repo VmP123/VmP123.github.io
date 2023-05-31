@@ -1,0 +1,57 @@
+{
+	"common": {
+		"width": 8,
+		"height": 8
+	},
+	"sprites": {
+		"player": {
+			"image": "player.png",
+			"row": 0,
+			"sequences": {
+				"idle": [0],
+				"run": [1, 2]
+			},
+			"boundingBox": {
+				"x": 1,
+				"y": 0,
+				"width": 6,
+				"height": 8
+			},
+			"generateHorizontalMirrored": true
+		},
+		"enemy": {
+			"image": "enemy.png",
+			"row": 0,
+			"sequences": {
+				"walk": [0, 1]
+			},
+			"generateHorizontalMirrored": true,
+			"boundingBox": {
+				"x": 0,
+				"y": 4,
+				"width": 8,
+				"height": 4
+			}
+		},
+		"big_present": {
+			"image": "collectible.png",
+			"row": 0,
+			"sequences": {
+				"default": [0]
+			},
+			"boundingBox": {
+				"x": 1,
+				"y": 3,
+				"width": 5,
+				"height": 5
+			}
+		},
+		"small_present": {
+			"image": "collectible.png",
+			"row": 1,
+			"sequences": {
+				"default": [0]
+			}
+		}
+	}
+}
