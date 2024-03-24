@@ -1,0 +1,5 @@
+<svg height="400" width="450" xmlns="http://www.w3.org/2000/svg">
+	<polygon class="flagColor" points="37,7 62,7 62,27 37,27" fill="green" stroke="black" stroke-width="0"/> <!-- full-flag -->
+	<!-- <polygon points="37,7 62,22 37,37 37,52" fill="none" stroke="black" stroke-width="2"/> -->
+	<polygon points="37,7 62,7 62,27 37,27 37,52" fill="none" stroke="black" stroke-width="2"/>
+</svg>
