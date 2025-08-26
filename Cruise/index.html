@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ajo</title>
+    <title>Cruise Control Panic</title>
     <style>
         body {
             margin: 0;
@@ -437,7 +437,8 @@
             ctx.font = `${24 * scaleH}px Segoe UI`;
             ctx.fillText(`Lopulliset pisteet: ${points}`, canvas.width / 2, canvas.height / 2 + 10 * scaleH);
             ctx.font = `${20 * scaleH}px Segoe UI`;
-            ctx.fillText('Paina Enter aloittaaksesi uudelleen', canvas.width / 2, canvas.height / 2 + 60 * scaleH);
+            const actionText = isMobile() ? 'Kosketa näyttöä' : 'Paina Enter';
+            ctx.fillText(`${actionText} aloittaaksesi uudelleen`, canvas.width / 2, canvas.height / 2 + 60 * scaleH);
         }
 
 				function drawTexts() {
@@ -500,7 +501,8 @@
                     ctx.fillStyle = 'white';
                     ctx.textAlign = 'center';
                     ctx.font = `bold ${16 * scaleH}px Segoe UI`;
-                    ctx.fillText('Paina Enter aloittaaksesi', canvas.width / 2, canvas.height - 60 * scaleH);
+                    const actionText = isMobile() ? 'Kosketa näyttöä' : 'Paina Enter';
+                    ctx.fillText(`${actionText} aloittaaksesi`, canvas.width / 2, canvas.height - 60 * scaleH);
                 }
             } else {
                 ctx.fillStyle = '#2c2c2c';
