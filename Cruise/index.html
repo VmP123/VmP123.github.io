@@ -51,9 +51,9 @@
         const CAR_HEIGHT = 74;
         const PLAYER_Y_OFFSET = 120;
 
-        const ROAD_SPEED_0 = 0;
-        const ROAD_SPEED_50 = 50 * 5;
-        const ROAD_SPEED_100 = 100 * 5;
+        const ROAD_SPEED_ZERO = 0;
+        const ROAD_SPEED_FIFTY = 50 * 5;
+        const ROAD_SPEED_HUNDRED = 100 * 5;
         const INITIAL_ROAD_SPEED = 10 * 5; 
         const MAX_ROAD_SPEED = 100 * 5;
         const ROAD_SPEED_INCREASE_RATE = 35;
@@ -61,6 +61,11 @@
         const PLAYER_ACCELERATION = 3000;
         const OBSTACLE_MIN_SPEED = 50;
 				const SPEED_CHANGE_METER_INTERVAL = 1000;
+				const PIXELS_PER_METER = 18;
+				const ODOMETER_CHECK_INTERVAL_METERS = 500;
+				const ROAD_STATE_CHANGE_INTERVAL = 3;
+				const START_TEXT_DELAY = 5000;
+				const CENTER_BIAS_PROBABILITY = 0.3;
 
         const PLAYER_CAR_BODY = '#0099ff';
         const PLAYER_CAR_ROOF = '#66ccff';
@@ -132,7 +137,7 @@
             odometer = 0;
             keys = {};
             lineDashOffset = 0;
-            roadSpeed = ROAD_SPEED_0;
+            roadSpeed = ROAD_SPEED_ZERO;
             points = 0;
 						setRoadState('speed_50');
 
@@ -222,7 +227,7 @@
             const spawnProbability = obstaclesMinY > MIN_OBSTACLE_GAP_Y ? acceleratingProbability(obstaclesMinY - MIN_OBSTACLE_GAP_Y, BASE_HEIGHT, 2) : 0;
 
             if (Math.random() < spawnProbability) {
-                var centerBiasedRandomValue = centerBiasedRandom();
+                const centerBiasedRandomValue = centerBiasedRandom();
                 const lane = Math.floor(centerBiasedRandomValue * ROAD_LANE_COUNT);
                 const obstacleInSameLane = obstacles.filter(o => o.lane == lane).sort((a, b) => b.speed - a.speed)?.[0];
                 
@@ -256,11 +261,11 @@
 
 						const nextOdometer = odometer + roadSpeed * dt;
 
-						roundedOdometerAsMeters = Math.floor(pixelsToMeters(odometer)/500);
-						roundedNextOdometerAsMeters = Math.floor(pixelsToMeters(nextOdometer)/500);
+						const roundedOdometerAsMeters = Math.floor(pixelsToMeters(odometer)/ODOMETER_CHECK_INTERVAL_METERS);
+						const roundedNextOdometerAsMeters = Math.floor(pixelsToMeters(nextOdometer)/ODOMETER_CHECK_INTERVAL_METERS);
 						
 						if (roundedOdometerAsMeters != roundedNextOdometerAsMeters) {
-							var result = roundedNextOdometerAsMeters % 3;
+							const result = roundedNextOdometerAsMeters % ROAD_STATE_CHANGE_INTERVAL;
 
 							if (result == 0)
 								setRoadState('speed_50');
@@ -290,7 +295,7 @@
         }
 
         function centerBiasedRandom() {
-            let randomValue = Math.random() < 0.3 ? (Math.random() + Math.random()) / 2 : Math.random();
+            let randomValue = Math.random() < CENTER_BIAS_PROBABILITY ? (Math.random() + Math.random()) / 2 : Math.random();
             return randomValue;
         }
 
@@ -303,7 +308,7 @@
         }
         
 				function pixelsToMeters(odometer) {
-					return odometer / 18;
+					return odometer / PIXELS_PER_METER;
 				}
 
         function draw() {
@@ -374,8 +379,8 @@
         }
 
         function drawSpeedSign(type) {
-            var centerX = ROAD_X + ROAD_WIDTH + (ROAD_X * 0.5);
-            var centerY = 560;
+            const centerX = ROAD_X + ROAD_WIDTH + (ROAD_X * 0.5);
+            const centerY = 560;
 
             const colorYellow = "#ffcd00";
             const colorRed = "#e5002b";
@@ -536,11 +541,11 @@
 
 				function setRoadState(state) {
 					if (state == 'speed_50') {
-						targetRoadSpeed = ROAD_SPEED_50;
+						targetRoadSpeed = ROAD_SPEED_FIFTY;
 						currentTraficSign = 'speed_50';
 					}
 					else if (state == 'speed_100') {
-						targetRoadSpeed = ROAD_SPEED_100;
+						targetRoadSpeed = ROAD_SPEED_HUNDRED;
 						currentTraficSign = 'speed_100';
 					}
 				}
@@ -553,7 +558,7 @@
             isCoverImageLoaded = true;
             setTimeout(() => {
                 showStartText = true;
-            }, 5000);
+            }, START_TEXT_DELAY);
         };
         coverImg.src = 'cover.png';
 
