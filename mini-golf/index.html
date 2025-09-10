@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Minigolf</title>
+<style>
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        font-family: sans-serif;
+        background-color: #f4f4f4;
+    }
+    #uiContainer {
+        text-align: center;
+        position: relative; /* Tarvitaan peittokuvan asetteluun */
+    }
+    canvas {
+        border: 10px solid #D2B48C;
+        border-radius: 15px;
+        background-color: #76B947;
+    }
+    #editorUI {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #e0e0e0;
+        border-radius: 8px;
+        display: none;
+    }
+    .tool-controls, .wall-controls {
+        padding: 5px;
+        border-bottom: 1px solid #ccc;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    #editorInstructions {
+        font-size: 14px;
+        color: #555;
+        margin-top: 8px;
+    }
+    button {
+        padding: 8px 16px;
+        font-size: 16px;
+        cursor: pointer;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        margin: 0 5px;
+    }
+    button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    .active-tool {
+        border-width: 2px;
+        border-color: #007bff;
+        background-color: #cce5ff;
+    }
+
+    /* Lisätyt tyylit lopputuloksen dialogille */
+    #gameOverOverlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(3px);
+        -webkit-backdrop-filter: blur(5px); /* Safari-yhteensopivuus */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+        border-radius: 5px; /* Sovita reunat kanvaasin säteeseen */
+        cursor: pointer;
+    }
+    #gameOverDialog {
+        background: #4CAF50;;
+        padding: 2em 3em;
+        border-radius: 15px; /* Pyöristetyt reunat */
+        border: 10px solid black;
+
+        text-align: center;
+        font-family: 'Comic Sans MS', cursive, sans-serif;
+        color: white;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    #gameOverDialog h2 {
+        font-size: 2.5em;
+        color: white;
+        margin-top: 0;
+        margin-bottom: 0.5em;
+    }
+    #gameOverDialog p {
+        color: white;
+        margin: 0.5em 0;
+        font-size: 1.5em;
+    }
+    #gameOverInstructions {
+        font-size: 1em !important;
+        color: white;
+        margin-top: 1.5em;
+    }
+</style>
+</head>
+<body>
+
+<div id="uiContainer">
+    <canvas id="golfCanvas" width="800" height="600"></canvas>
+    <!-- Pelin lopputuloksen dialogi-ikkuna (oletuksena piilossa) -->
+    <div id="gameOverOverlay" style="display: none;">
+        <div id="gameOverDialog">
+            <h2>Hienoa!</h2>
+            <p id="gameOverScore"></p>
+            <p id="gameOverInstructions">Klikkaa pelataksesi uudelleen.</p>
+        </div>
+    </div>
+    <div id="controls">
+        <button id="modeToggleButton">Vaihda editoriin</button>
+        <div id="editorUI">
+            <div class="tool-controls">
+                <button id="toolWall" class="active-tool">Este</button>
+                <button id="toolSand">Hiekka</button>
+                <button id="toolBall">Pallo</button>
+                <button id="toolHole">Reikä</button>
+            </div>
+            <div class="wall-controls">
+                <label for="thicknessSlider">Paksuus:</label>
+                <input type="range" id="thicknessSlider" min="10" max="100" value="40" disabled>
+                <span id="thicknessValue">40</span>
+                <button id="deleteButton" disabled>Poista valittu</button>
+                <button id="clearButton">Tyhjennä kenttä</button>
+                <label for="fillCheckbox" style="margin-left: 15px;">Täytä:</label>
+                <input type="checkbox" id="fillCheckbox" disabled>
+                <label for="snapCheckbox" style="margin-left: 15px;">Tartu ruudukkoon:</label>
+                <input type="checkbox" id="snapCheckbox" checked>
+            </div>
+            <p id="editorInstructions">
+                <b>Ohje:</b> Raahaa estettä/hiekkaa siirtääksesi. Raahaa pistettä muokataksesi. Klikkaa tyhjään piirtääksesi.
+                <br>
+                (Ctrl+Klik = lisää piste, Alt+Klik = poista piste, Del = poista valittu, Esc = lopeta piirto/valinta)
+            </p>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    const canvas = document.getElementById('golfCanvas');
+    const ctx = canvas.getContext('2d');
+
+
+    const modeToggleButton = document.getElementById('modeToggleButton');
+    const editorUI = document.getElementById('editorUI');
+    const thicknessSlider = document.getElementById('thicknessSlider');
+    const thicknessValue = document.getElementById('thicknessValue');
+    const clearButton = document.getElementById('clearButton');
+    const deleteButton = document.getElementById('deleteButton');
+    const snapCheckbox = document.getElementById('snapCheckbox');
+    const fillCheckbox = document.getElementById('fillCheckbox');
+    const toolButtons = {
+        wall: document.getElementById('toolWall'),
+        sand: document.getElementById('toolSand'),
+        ball: document.getElementById('toolBall'),
+        hole: document.getElementById('toolHole')
+    };
+
+    const gameOverOverlay = document.getElementById('gameOverOverlay');
+    const gameOverScore = document.getElementById('gameOverScore');
+
+    let gameMode = 'play';
+    canvas.style.cursor = 'pointer';
+    let activeTool = 'wall';
+
+    const PALETTE = {
+        grass: '#76B947', border: '#D2B48C', wallDark: '#63331c',
+        wallLight: '#A0522D', hole: '#3B271A', flag: '#E53935',
+        sandBase: '#eac995', sandDark: '#d8b989'
+    };
+
+    let level = {
+        start: { x: 100, y: 300 },
+        hole: { x: 700, y: 300 },
+        walls: [],
+        sandTraps: [],
+    };
+
+    function saveLevel() {
+        try {
+            localStorage.setItem('minigolfLevel', JSON.stringify(level));
+        } catch (e) {
+            console.error("Kentän tallennus localStorageen epäonnistui:", e);
+        }
+    }
+
+    function loadLevel() {
+        const savedLevelJSON = localStorage.getItem('minigolfLevel');
+        if (savedLevelJSON) {
+            try {
+                const savedLevel = JSON.parse(savedLevelJSON);
+
+                if (savedLevel && savedLevel.start && savedLevel.hole && Array.isArray(savedLevel.walls) && Array.isArray(savedLevel.sandTraps)) {
+                    level = savedLevel;
+                }
+            } catch (e) {
+                console.error("Tallennetun kentän lukeminen epäonnistui:", e);
+            }
+        }
+        else {
+            level = {"start":{"x":100,"y":320},"hole":{"x":720,"y":200},"walls":[{"points":[{"x":280,"y":440},{"x":81,"y":76},{"x":347,"y":151},{"x":358,"y":272},{"x":280,"y":440}],"thickness":40,"isFilled":true},{"points":[{"x":-20,"y":340},{"x":240,"y":620},{"x":0,"y":600},{"x":-20,"y":340}],"thickness":40,"isFilled":true},{"points":[{"x":860,"y":160},{"x":580,"y":-20},{"x":840,"y":-20},{"x":860,"y":160}],"thickness":40,"isFilled":true},{"points":[{"x":580,"y":520},{"x":520,"y":380},{"x":460,"y":520}],"thickness":40,"isFilled":false},{"points":[{"x":740,"y":380},{"x":680,"y":520},{"x":620,"y":380}],"thickness":40,"isFilled":false},{"points":[{"x":460,"y":300},{"x":620,"y":260},{"x":620,"y":100},{"x":460,"y":300}],"thickness":40,"isFilled":true},{"points":[{"x":360,"y":520},{"x":420,"y":380}],"thickness":40,"isFilled":false}],"sandTraps":[{"points":[{"x":220,"y":40},{"x":500,"y":120},{"x":560,"y":40},{"x":220,"y":40}],"thickness":40,"isFilled":true}]};
+        }
+    }
+
+    loadLevel();
+
+    // Editor
+    let isDrawing = false;
+    let currentObject = null;
+    let selectedObject = null;
+    let isDraggingPoint = false;
+    let selectedPointIndex = null;
+    let isDraggingObject = false;
+    let dragStartMouse = null;
+    let originalObjectPoints = null;
+    let globalThickness = 40;
+    const gridSize = 20;
+    let snapToGrid = true;
+
+    // Game
+    const initialBallRadius = 12;
+    let ball = {};
+    let hole = {};
+    let particles = [];
+    const FRICTION_HIGH_SPEED = 0.995, FRICTION_LOW_SPEED = 0.94, FRICTION_CURVE_STEEPNESS = 0.15, SAND_FRICTION = 0.88;
+    const MAX_ENTRY_SPEED = 2.5, HOLE_INFLUENCE_RADIUS_MULTIPLIER = 1.25, HOLE_GRAVITY = 0.38;
+    const SHADOW_OFFSET_X = -8, SHADOW_OFFSET_Y = 8, SHADOW_COLOR = 'rgba(0, 0, 0, 0.15)';
+    const SNAPPING_DISTANCE_SQ = 400, MAX_POWER_DIST = 200;
+
+    let power = 0, angle = 0, isAiming = false, isBallMoving = false, strokes = 0, gameOver = false;
+    let mouse = { x: 0, y: 0 };
+
+    modeToggleButton.addEventListener('click', () => { if (gameMode === 'play') { gameMode = 'edit'; modeToggleButton.textContent = 'Vaihda peliin'; editorUI.style.display = 'block'; setActiveTool('wall'); resetGame(); } else { gameMode = 'play'; console.log(level); modeToggleButton.textContent = 'Vaihda editoriin'; editorUI.style.display = 'none'; canvas.style.cursor = 'pointer'; cancelDrawing(); selectedObject = null; updateEditorUI(); resetGame(); } });
+    Object.keys(toolButtons).forEach(tool => { toolButtons[tool].addEventListener('click', () => setActiveTool(tool)); });
+    clearButton.addEventListener('click', () => { if (gameMode === 'edit') { level.walls = []; level.sandTraps = []; selectedObject = null; isDrawing = false; currentObject = null; updateEditorUI(); saveLevel(); } });
+    deleteButton.addEventListener('click', deleteSelectedObject);
+    thicknessSlider.addEventListener('input', () => { globalThickness = parseInt(thicknessSlider.value, 10); thicknessValue.textContent = globalThickness; if (selectedObject) { selectedObject.thickness = globalThickness; saveLevel(); } });
+    snapCheckbox.addEventListener('change', () => { snapToGrid = snapCheckbox.checked; });
+    fillCheckbox.addEventListener('change', () => { if (selectedObject && isObjectClosed(selectedObject)) { selectedObject.isFilled = fillCheckbox.checked; saveLevel(); }});
+    gameOverOverlay.addEventListener('click', resetGame);
+    
+    canvas.addEventListener('mousedown', (e) => {
+        if (gameMode === 'play') {
+            if (!isBallMoving && !gameOver) isAiming = true;
+        } else if (gameMode === 'edit') {
+            const snappedMouse = getSnappedPoint(mouse);
+            switch (activeTool) {
+                case 'wall':
+                case 'sand':
+                    handleObjectMousedown(e);
+                    break;
+                case 'ball': level.start = { x: snappedMouse.x, y: snappedMouse.y }; saveLevel(); break;
+                case 'hole': level.hole = { x: snappedMouse.x, y: snappedMouse.y }; saveLevel(); break;
+            }
+        }
+    });
+
+    function handleObjectMousedown(e) {
+        const snappedMouse = getSnappedPoint(mouse);
+        
+        if (e.ctrlKey && selectedObject) {
+            const closestSegment = findClosestSegment(selectedObject, snappedMouse);
+            if (closestSegment.index !== null && closestSegment.distanceSq < (selectedObject.thickness*2)**2) {
+                const newPoint = { x: snappedMouse.x, y: snappedMouse.y };
+                selectedObject.points.splice(closestSegment.index + 1, 0, newPoint);
+                isDrawing = false; currentObject = null;
+                updateEditorUI();
+                saveLevel();
+                return;
+            }
+        }
+        
+        if (e.altKey) {
+            const object = getObjectAtPoint(mouse.x, mouse.y, activeTool);
+            if (object) {
+                const pointIndex = getPointAtMouse(object, mouse.x, mouse.y);
+                if (pointIndex !== null && object.points.length > 2) {
+                    object.points.splice(pointIndex, 1);
+                    updateEditorUI();
+                    saveLevel();
+                    return;
+                }
+            }
+        }
+        
+        if (isDrawing && currentObject) {
+            currentObject.points.push({ x: snappedMouse.x, y: snappedMouse.y });
+            return;
+        }
+
+        if (selectedObject) {
+            const pointIndex = getPointAtMouse(selectedObject, mouse.x, mouse.y);
+            if (pointIndex !== null) {
+                isDraggingPoint = true; selectedPointIndex = pointIndex;
+                return;
+            }
+        }
+
+        const object = getObjectAtPoint(mouse.x, mouse.y, activeTool);
+        if (object) {
+            selectedObject = object;
+            isDrawing = false; currentObject = null;
+            isDraggingObject = true;
+            dragStartMouse = { x: mouse.x, y: mouse.y };
+            originalObjectPoints = JSON.parse(JSON.stringify(selectedObject.points));
+        } else {
+            selectedObject = null;
+            isDrawing = true;
+            const newObject = { points: [{ x: snappedMouse.x, y: snappedMouse.y }], thickness: globalThickness, isFilled: false };
+            if (activeTool === 'wall') {
+                level.walls.push(newObject);
+            } else if (activeTool === 'sand') {
+                level.sandTraps.push(newObject);
+            }
+            currentObject = newObject;
+        }
+        updateEditorUI();
+    }
+
+    canvas.addEventListener('dblclick', (e) => {
+        if (gameMode === 'edit' && isDrawing) {
+            if (currentObject && currentObject.points.length >= 2) {
+                snapObject(currentObject);
+            } else if (currentObject) {
+                if (activeTool === 'wall') level.walls.pop();
+                else if (activeTool === 'sand') level.sandTraps.pop();
+            }
+            isDrawing = false;
+            currentObject = null;
+            updateEditorUI();
+            saveLevel();
+        }
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+        if (gameMode === 'play' && isAiming) {
+            isAiming = false;
+            if (power > 0.1) { isBallMoving = true; strokes++; shoot(); }
+        } else if (gameMode === 'edit') {
+            let levelWasModified = false;
+            if (isDraggingPoint) {
+                if (selectedObject) {
+                    snapObject(selectedObject, selectedPointIndex);
+                }
+                isDraggingPoint = false; selectedPointIndex = null;
+                levelWasModified = true;
+            }
+            if (isDraggingObject) {
+                isDraggingObject = false;
+                originalObjectPoints = null;
+                dragStartMouse = null;
+                levelWasModified = true;
+            }
+            if (levelWasModified) {
+                updateEditorUI();
+                saveLevel();
+            }
+        }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        mouse.x = e.offsetX; mouse.y = e.offsetY;
+
+        if (isDraggingPoint && selectedObject) {
+            const snappedMouse = getSnappedPoint(mouse);
+            const point = selectedObject.points[selectedPointIndex];
+            point.x = snappedMouse.x; point.y = snappedMouse.y;
+            snapObject(selectedObject, selectedPointIndex);
+            updateEditorUI();
+        } else if (isDraggingObject && selectedObject) {
+            let dx = mouse.x - dragStartMouse.x;
+            let dy = mouse.y - dragStartMouse.y;
+            
+            if (snapToGrid) {
+                const firstPointOriginal = originalObjectPoints[0];
+                const newFirstPointX = firstPointOriginal.x + dx;
+                const newFirstPointY = firstPointOriginal.y + dy;
+                const snappedNewFirstPoint = getSnappedPoint({x: newFirstPointX, y: newFirstPointY});
+                dx = snappedNewFirstPoint.x - firstPointOriginal.x;
+                dy = snappedNewFirstPoint.y - firstPointOriginal.y;
+            }
+
+            for (let i = 0; i < originalObjectPoints.length; i++) {
+                selectedObject.points[i].x = originalObjectPoints[i].x + dx;
+                selectedObject.points[i].y = originalObjectPoints[i].y + dy;
+            }
+        }
+    });
+    
+    window.addEventListener('keydown', (e) => {
+        if (gameMode !== 'edit') return;
+        if (e.key === 'Escape') { handleEscape(); }
+        if (e.key === 'Delete' || e.key === 'Backspace') { deleteSelectedObject(); }
+    });
+
+    function setActiveTool(toolName) { cancelDrawing(); selectedObject = null; activeTool = toolName; Object.values(toolButtons).forEach(button => button.classList.remove('active-tool')); toolButtons[toolName].classList.add('active-tool'); updateEditorCursor(); updateEditorUI(); }
+    
+    function deleteSelectedObject() {
+        if (!selectedObject) return;
+        if (activeTool === 'wall') {
+            const index = level.walls.indexOf(selectedObject);
+            if (index > -1) level.walls.splice(index, 1);
+        } else if (activeTool === 'sand') {
+            const index = level.sandTraps.indexOf(selectedObject);
+            if (index > -1) level.sandTraps.splice(index, 1);
+        }
+        selectedObject = null;
+        updateEditorUI();
+        saveLevel();
+    }
+    
+    function handleEscape() {
+        if (isDrawing && currentObject) {
+            if (currentObject.points.length < 2) {
+                if (activeTool === 'wall') level.walls.pop();
+                else if (activeTool === 'sand') level.sandTraps.pop();
+            }
+            isDrawing = false;
+            currentObject = null;
+        } else if (selectedObject) {
+            selectedObject = null;
+        }
+        updateEditorUI();
+    }
+
+    function cancelDrawing() {
+        if (isDrawing && currentObject) {
+            if (activeTool === 'wall') level.walls.pop();
+            else if (activeTool === 'sand') level.sandTraps.pop();
+            isDrawing = false;
+            currentObject = null;
+        }
+    }
+    
+    function getSnappedPoint(p) { if (!snapToGrid) return { x: p.x, y: p.y }; return { x: Math.round(p.x / gridSize) * gridSize, y: Math.round(p.y / gridSize) * gridSize }; }
+    function isObjectClosed(obj) { if (!obj || obj.points.length < 3) return false; const firstPoint = obj.points[0]; const lastPoint = obj.points[obj.points.length - 1]; return firstPoint.x === lastPoint.x && firstPoint.y === lastPoint.y; }
+    
+    function updateEditorUI() {
+        deleteButton.disabled = selectedObject === null;
+        const isDrawableTool = activeTool === 'wall' || activeTool === 'sand';
+
+        document.querySelector('.wall-controls').style.visibility = (activeTool !== 'ball' && activeTool !== 'hole') ? 'visible' : 'hidden';
+
+        if (isDrawableTool && selectedObject) {
+            thicknessSlider.disabled = false;
+            thicknessSlider.value = selectedObject.thickness;
+            thicknessValue.textContent = selectedObject.thickness;
+
+            if (isObjectClosed(selectedObject)) {
+                fillCheckbox.disabled = false;
+                fillCheckbox.checked = selectedObject.isFilled;
+            } else {
+                fillCheckbox.disabled = true;
+                fillCheckbox.checked = false;
+                if (selectedObject) selectedObject.isFilled = false;
+            }
+        } else if (isDrawableTool) {
+             thicknessSlider.disabled = false;
+             fillCheckbox.disabled = true;
+             fillCheckbox.checked = false;
+        }
+        else {
+            thicknessSlider.disabled = true;
+            fillCheckbox.disabled = true;
+            fillCheckbox.checked = false;
+        }
+    }
+
+    function findClosestSegment(obj, point) {
+        let best = { index: null, distanceSq: Infinity }; if (obj.points.length < 2) return best;
+        for (let i = 0; i < obj.points.length - 1; i++) { const p1 = obj.points[i]; const p2 = obj.points[i + 1]; const wallVecX = p2.x - p1.x; const wallVecY = p2.y - p1.y; const wallLengthSq = wallVecX * wallVecX + wallVecY * wallVecY; let distSq; if (wallLengthSq === 0) { distSq = (point.x - p1.x) ** 2 + (point.y - p1.y) ** 2; } else { const pointToWallX = point.x - p1.x; const pointToWallY = point.y - p1.y; let t = (pointToWallX * wallVecX + pointToWallY * wallVecY) / wallLengthSq; t = Math.max(0, Math.min(1, t)); const closestX = p1.x + t * wallVecX; const closestY = p1.y + t * wallVecY; distSq = (point.x - closestX) ** 2 + (point.y - closestY) ** 2; } if (distSq < best.distanceSq) { best.distanceSq = distSq; best.index = i; } } return best;
+    }
+
+    function snapObject(obj, pointIndexToSnap) { if (obj.points.length < 2) return; const firstPoint = obj.points[0]; const lastPoint = obj.points[obj.points.length - 1]; const distSq = (lastPoint.x - firstPoint.x) ** 2 + (lastPoint.y - firstPoint.y) ** 2; if (distSq < SNAPPING_DISTANCE_SQ) { if (pointIndexToSnap === 0) { firstPoint.x = lastPoint.x; firstPoint.y = lastPoint.y; } else { lastPoint.x = firstPoint.x; lastPoint.y = firstPoint.y; } } }
+    
+    function isPointInPolygon(point, polygon) { let isInside = false; const x = point.x, y = point.y; for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) { const xi = polygon[i].x, yi = polygon[i].y; const xj = polygon[j].x, yj = polygon[j].y; const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi); if (intersect) isInside = !isInside; } return isInside; }
+    
+    function drawGrid() { ctx.beginPath(); ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; ctx.lineWidth = 1; for (let x = 0; x <= canvas.width; x += gridSize) { ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); } for (let y = 0; y <= canvas.height; y += gridSize) { ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); } ctx.stroke(); }
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (gameMode === 'edit') {
+          drawGrid();
+        } 
+        
+        drawSandTraps();
+        drawAllShadows();
+        drawWalls();
+
+        if (gameMode === 'play') { 
+          drawHole(); 
+          updateAndDrawParticles(); 
+          drawBall(); 
+          drawFlag(); 
+          drawAimLine(); 
+          drawStrokes(); 
+        } else if (gameMode === 'edit') {
+            drawEditorOverlay();
+            if (selectedObject) drawObjectHandles(selectedObject);
+            ctx.globalAlpha = 0.5;
+            const snappedMouse = getSnappedPoint(mouse);
+            if (activeTool === 'ball') { ctx.fillStyle = 'white'; ctx.beginPath(); ctx.arc(snappedMouse.x, snappedMouse.y, initialBallRadius, 0, Math.PI * 2); ctx.fill(); }
+            else if (activeTool === 'hole') { ctx.fillStyle = PALETTE.hole; ctx.beginPath(); ctx.arc(snappedMouse.x, snappedMouse.y, 16, 0, Math.PI * 2); ctx.fill(); }
+            ctx.globalAlpha = 1.0;
+            if (isDrawing && currentObject && currentObject.points.length > 0) { const lastPoint = currentObject.points[currentObject.points.length - 1]; ctx.beginPath(); ctx.moveTo(lastPoint.x, lastPoint.y); ctx.lineTo(snappedMouse.x, snappedMouse.y); ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)'; ctx.lineWidth = 2; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]); }
+        }
+    }
+    
+    function drawObjectHandles(object) { for (let i = 0; i < object.points.length; i++) { const point = object.points[i]; ctx.beginPath(); ctx.arc(point.x, point.y, 8, 0, Math.PI * 2); ctx.fillStyle = (isDraggingPoint && i === selectedPointIndex) ? '#007bff' : 'rgba(255, 255, 255, 0.8)'; ctx.fill(); ctx.strokeStyle = '#333'; ctx.lineWidth = 2; ctx.stroke(); } }
+    
+    function shoot() { if (power < 0.1) return; ball.dx = Math.cos(angle) * power; ball.dy = Math.sin(angle) * power; }
+    
+    function createParticles(x, y, count, type, normalX, normalY) {
+        for (let i = 0; i < count; i++) {
+            const particle = {
+                x, y, life: Math.random() * 30 + 20,
+                size: Math.random() * 2 + 1,
+            };
+            if (type === 'dust') {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 0.25;
+                particle.dx = Math.cos(angle) * speed;
+                particle.dy = Math.sin(angle) * speed;
+                particle.color = 'rgba(240, 230, 210, 0.7)';
+            } else if (type === 'sand') {
+                particle.dx = (Math.random() - 0.5) * 1.5;
+                particle.dy = -Math.random() * 2.0;
+                particle.color = 'rgba(216, 185, 137, 0.8)';
+            } else if (type === 'collision') {
+                let angle;
+                if (normalX !== undefined && normalY !== undefined) {
+                    const baseAngle = Math.atan2(normalY, normalX);
+                    angle = baseAngle + (Math.random() - 0.5) * (Math.PI / 2);
+                } else {
+                    angle = Math.random() * Math.PI * 2;
+                }
+                const speed = Math.random() * 1.5 + 1;
+                particle.dx = Math.cos(angle) * speed;
+                particle.dy = Math.sin(angle) * speed;
+                particle.color = 'rgba(160, 82, 45, 0.8)';
+            }
+            particles.push(particle);
+        }
+    }
+
+    function setupLevel() { ball = { x: level.start.x, y: level.start.y, radius: initialBallRadius, dx: 0, dy: 0, rotation: 0, color: 'white' }; hole = { x: level.hole.x, y: level.hole.y, radius: 16, color: PALETTE.hole }; }
+    function resetGame() { 
+        gameOverOverlay.style.display = 'none';
+        setupLevel(); 
+        strokes = 0; 
+        gameOver = false; 
+        isBallMoving = false; 
+        particles = []; 
+        if (gameMode === 'edit') { 
+            ball.radius = 0; 
+        } 
+    }
+    
+    function isBallOnObjectBorder(ball, object) {
+        if (object.points.length < 2) return false;
+        let closestDistSq = Infinity;
+        for (let i = 0; i < object.points.length - 1; i++) {
+            const p1 = object.points[i];
+            const p2 = object.points[i+1];
+            const wallVecX = p2.x - p1.x; const wallVecY = p2.y - p1.y;
+            const wallLengthSq = wallVecX * wallVecX + wallVecY * wallVecY;
+            let distSq;
+            if (wallLengthSq > 0) {
+                const ballToWallX = ball.x - p1.x; const ballToWallY = ball.y - p1.y;
+                let t = (ballToWallX * wallVecX + ballToWallY * wallVecY) / wallLengthSq;
+                t = Math.max(0, Math.min(1, t));
+                const pointOnSegment = { x: p1.x + t * wallVecX, y: p1.y + t * wallVecY };
+                distSq = (ball.x - pointOnSegment.x) ** 2 + (ball.y - pointOnSegment.y) ** 2;
+            } else {
+                 distSq = (ball.x - p1.x) ** 2 + (ball.y - p1.y) ** 2;
+            }
+            if (distSq < closestDistSq) {
+                closestDistSq = distSq;
+            }
+        }
+        return closestDistSq < (object.thickness / 2) ** 2;
+    }
+
+    function update() {
+        if (gameMode === 'play') {
+            if (gameOver) {
+                ball.x += (hole.x - ball.x) * 0.15;
+                ball.y += (hole.y - ball.y) * 0.15;
+                ball.radius *= 0.93;
+            }
+            if (isBallMoving) {
+                const distToHole = Math.sqrt((ball.x - hole.x)**2 + (ball.y - hole.y)**2);
+                if (distToHole < hole.radius * HOLE_INFLUENCE_RADIUS_MULTIPLIER) { if (distToHole > 1) { const pullX = hole.x - ball.x; const pullY = hole.y - ball.y; ball.dx += (pullX / distToHole) * HOLE_GRAVITY; ball.dy += (pullY / distToHole) * HOLE_GRAVITY; } }
+                ball.x += ball.dx; ball.y += ball.dy; ball.rotation += ball.dx * 0.05;
+                if (ball.x + ball.radius > canvas.width) { if (Math.abs(ball.dx) > 1) createParticles(canvas.width, ball.y, 8, 'collision', -1, 0); ball.x = canvas.width - ball.radius; ball.dx = -ball.dx; } else if (ball.x - ball.radius < 0) { if (Math.abs(ball.dx) > 1) createParticles(0, ball.y, 8, 'collision', 1, 0); ball.x = ball.radius; ball.dx = -ball.dx; }
+                if (ball.y + ball.radius > canvas.height) { if (Math.abs(ball.dy) > 1) createParticles(ball.x, canvas.height, 8, 'collision', 0, -1); ball.y = canvas.height - ball.radius; ball.dy = -ball.dy; } else if (ball.y - ball.radius < 0) { if (Math.abs(ball.dy) > 1) createParticles(ball.x, 0, 8, 'collision', 0, 1); ball.y = ball.radius; ball.dy = -ball.dy; }
+                checkAndResolveAllWallCollisions(level.walls);
+                const currentSpeed = Math.sqrt(ball.dx**2 + ball.dy**2);
+                
+                let inSand = false;
+                for (const trap of level.sandTraps) {
+                    const isOnBorder = isBallOnObjectBorder(ball, trap);
+                    const isInsideFill = trap.isFilled && isObjectClosed(trap) && isPointInPolygon(ball, trap.points);
+                    if (isOnBorder || isInsideFill) {
+                        inSand = true;
+                        break;
+                    }
+                }
+
+                if (inSand) {
+                    ball.dx *= SAND_FRICTION;
+                    ball.dy *= SAND_FRICTION;
+                    if (currentSpeed > 0.1 && Math.random() > 0.4) {
+                        createParticles(ball.x, ball.y, 1, 'sand');
+                    }
+                }
+                else { const normalizedSpeedFactor = 1 - Math.exp(-FRICTION_CURVE_STEEPNESS * currentSpeed); const frictionToApply = FRICTION_LOW_SPEED + (FRICTION_HIGH_SPEED - FRICTION_LOW_SPEED) * normalizedSpeedFactor; ball.dx *= frictionToApply; ball.dy *= frictionToApply; if (currentSpeed > 1.5 && Math.random() > 0.75) { createParticles(ball.x, ball.y, 1, 'dust'); } }
+                if (currentSpeed < 0.05) { ball.dx = 0; ball.dy = 0; isBallMoving = false; }
+                if (distToHole < hole.radius && currentSpeed < MAX_ENTRY_SPEED) { 
+                    isBallMoving = false; 
+                    gameOver = true;
+
+                    gameOverScore.textContent = "Tulos: " + strokes + " lyöntiä.";
+                    gameOverOverlay.style.display = 'flex';
+                }
+            }
+        } else if (gameMode === 'edit') { updateEditorCursor(); }
+        draw();
+        requestAnimationFrame(update);
+    }
+    
+    function checkAndResolveAllWallCollisions(list) { for (const wall of list) { if (wall.points.length < 2) continue; let closestPoint = { distSq: Infinity }; for (let i = 0; i < wall.points.length; i++) { const p1 = wall.points[i]; const distSqToPoint = (ball.x - p1.x) ** 2 + (ball.y - p1.y) ** 2; if (distSqToPoint < closestPoint.distSq) { closestPoint = { x: p1.x, y: p1.y, distSq: distSqToPoint }; } if (i < wall.points.length - 1) { const p2 = wall.points[i + 1]; const wallVecX = p2.x - p1.x; const wallVecY = p2.y - p1.y; const wallLengthSq = wallVecX * wallVecX + wallVecY * wallVecY; if (wallLengthSq > 0) { const ballToWallX = ball.x - p1.x; const ballToWallY = ball.y - p1.y; let t = (ballToWallX * wallVecX + ballToWallY * wallVecY) / wallLengthSq; t = Math.max(0, Math.min(1, t)); const pointOnSegment = { x: p1.x + t * wallVecX, y: p1.y + t * wallVecY }; const distSqToSegment = (ball.x - pointOnSegment.x) ** 2 + (ball.y - pointOnSegment.y) ** 2; if (distSqToSegment < closestPoint.distSq) { closestPoint = { x: pointOnSegment.x, y: pointOnSegment.y, distSq: distSqToSegment }; } } } } const effectiveRadius = ball.radius + wall.thickness / 2; if (closestPoint.distSq < effectiveRadius ** 2) { const distance = Math.sqrt(closestPoint.distSq); const normalX = (ball.x - closestPoint.x) / distance; const normalY = (ball.y - closestPoint.y) / distance; if (Math.sqrt(ball.dx ** 2 + ball.dy ** 2) > 1) { const collisionPointX = ball.x - normalX * ball.radius; const collisionPointY = ball.y - normalY * ball.radius; createParticles(collisionPointX, collisionPointY, 8, 'collision', normalX, normalY); } const push = effectiveRadius - distance; ball.x += normalX * push; ball.y += normalY * push; const dot = ball.dx * normalX + ball.dy * normalY; ball.dx -= 2 * dot * normalX; ball.dy -= 2 * dot * normalY; } } }
+    
+    function getObjectAtPoint(x, y, type) {
+        const list = type === 'wall' ? level.walls : level.sandTraps;
+        for (const object of list) {
+            if (object.isFilled && isObjectClosed(object) && isPointInPolygon({x, y}, object.points)) { return object; }
+            if (object.points.length === 1) {
+                const p1 = object.points[0];
+                const distSq = (x - p1.x)**2 + (y - p1.y)**2;
+                if (distSq < (object.thickness / 2)**2) { return object; }
+                continue; 
+            }
+            for (let i = 0; i < object.points.length - 1; i++) {
+                const p1 = object.points[i];
+                const p2 = object.points[i + 1];
+                const wallVecX = p2.x - p1.x; const wallVecY = p2.y - p1.y;
+                const wallLengthSq = wallVecX * wallVecX + wallVecY * wallVecY;
+                let distSq;
+                if (wallLengthSq > 0) {
+                    const pointToWallX = x - p1.x; const pointToWallY = y - p1.y;
+                    let t = (pointToWallX * wallVecX + pointToWallY * wallVecY) / wallLengthSq;
+                    t = Math.max(0, Math.min(1, t));
+                    const closestX = p1.x + t * wallVecX; const closestY = p1.y + t * wallVecY;
+                    distSq = (x - closestX)**2 + (y - closestY)**2;
+                } else {
+                    distSq = (x - p1.x)**2 + (y - p1.y)**2;
+                }
+                if (distSq < (object.thickness / 2)**2) { return object; }
+            }
+        }
+        return null;
+    }
+
+    function getPointAtMouse(object, x, y) { for(let i = 0; i < object.points.length; i++) { const point = object.points[i]; const distSq = (x - point.x)**2 + (y - point.y)**2; if (distSq < (12)**2) { return i; } } return null; }
+    function updateEditorCursor() { switch (activeTool) { case 'ball': case 'hole': canvas.style.cursor = 'grab'; break; case 'wall': case 'sand': if (isDrawing) { canvas.style.cursor = 'crosshair'; return; } const pointUnderCursor = selectedObject ? getPointAtMouse(selectedObject, mouse.x, mouse.y) : null; if (pointUnderCursor !== null || isDraggingPoint) { canvas.style.cursor = 'move'; } else { const objectUnderCursor = getObjectAtPoint(mouse.x, mouse.y, activeTool); if (objectUnderCursor !== null || isDraggingObject) { canvas.style.cursor = 'grab'; } else { canvas.style.cursor = 'crosshair'; } } break; } }
+    
+    function updateAndDrawParticles() {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.dx;
+            p.y += p.dy;
+            p.life--;
+            p.size *= 0.98;
+            if (p.life <= 0 || p.size < 0.5) {
+                particles.splice(i, 1);
+            } else {
+                ctx.globalAlpha = p.life / 50;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+        ctx.globalAlpha = 1.0;
+    }
+    
+    function drawSandTraps() {
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        level.sandTraps.forEach(trap => {
+            if (trap.points.length < 1) return;
+            const isSelected = (gameMode === 'edit' && trap === selectedObject);
+            const closed = isObjectClosed(trap);
+            
+            ctx.beginPath();
+            ctx.moveTo(trap.points[0].x, trap.points[0].y);
+            if (trap.points.length > 1) { for (let i = 1; i < trap.points.length; i++) { ctx.lineTo(trap.points[i].x, trap.points[i].y); } }
+            else { ctx.lineTo(trap.points[0].x, trap.points[0].y); }
+            if (closed) { ctx.closePath(); }
+            
+            ctx.strokeStyle = isSelected ? 'rgba(0, 150, 255, 0.8)' : PALETTE.sandDark;
+            ctx.lineWidth = trap.thickness;
+            ctx.stroke();
+
+            ctx.strokeStyle = isSelected ? 'rgba(100, 200, 255, 1)' : PALETTE.sandBase;
+            ctx.lineWidth = trap.thickness - 10;
+            ctx.stroke();
+
+            if (trap.isFilled && closed) {
+                ctx.fillStyle = isSelected ? 'rgba(100, 200, 255, 0.7)' : PALETTE.sandBase;
+                ctx.fill();
+            }
+        });
+        ctx.lineWidth = 1;
+        ctx.lineCap = 'butt';
+        ctx.lineJoin = 'miter';
+    }
+
+    function drawWalls() {
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        level.walls.forEach(wall => {
+            if (wall.points.length < 1) return;
+            const isSelected = (gameMode === 'edit' && wall === selectedObject);
+            const closed = isObjectClosed(wall);
+
+            ctx.beginPath();
+            ctx.moveTo(wall.points[0].x, wall.points[0].y);
+            if (wall.points.length > 1) { for (let i = 1; i < wall.points.length; i++) { ctx.lineTo(wall.points[i].x, wall.points[i].y); } }
+            else { ctx.lineTo(wall.points[0].x, wall.points[0].y); }
+            if (closed) { ctx.closePath(); }
+            
+            ctx.strokeStyle = isSelected ? 'rgba(0, 150, 255, 0.8)' : PALETTE.wallDark;
+            ctx.lineWidth = wall.thickness;
+            ctx.stroke();
+            
+            ctx.strokeStyle = isSelected ? 'rgba(100, 200, 255, 1)' : PALETTE.wallLight;
+            ctx.lineWidth = wall.thickness - 10;
+            ctx.stroke();
+
+            if (wall.isFilled && closed) {
+                 ctx.fillStyle = isSelected ? 'rgba(100, 200, 255, 0.7)' : PALETTE.wallLight;
+                 ctx.fill();
+            }
+        });
+        ctx.lineWidth = 1;
+        ctx.lineCap = 'butt';
+        ctx.lineJoin = 'miter';
+    }
+
+    function drawAllShadows() {
+        ctx.save(); ctx.strokeStyle = SHADOW_COLOR; ctx.fillStyle = SHADOW_COLOR; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        level.walls.forEach(obj => {
+            if (obj.points.length < 1) return;
+            ctx.lineWidth = obj.thickness;
+            ctx.beginPath();
+            ctx.moveTo(obj.points[0].x + SHADOW_OFFSET_X, obj.points[0].y + SHADOW_OFFSET_Y);
+            if (obj.points.length > 1) { for (let i = 1; i < obj.points.length; i++) { ctx.lineTo(obj.points[i].x + SHADOW_OFFSET_X, obj.points[i].y + SHADOW_OFFSET_Y); } }
+            else { ctx.lineTo(obj.points[0].x + SHADOW_OFFSET_X, obj.points[0].y + SHADOW_OFFSET_Y); }
+            
+            const closed = isObjectClosed(obj);
+            if (closed) { ctx.closePath(); }
+            
+            if (obj.isFilled && closed) {
+                 ctx.fill();
+            }
+             ctx.stroke();
+        });
+        if (gameMode === 'play') { ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(hole.x + SHADOW_OFFSET_X, hole.y + SHADOW_OFFSET_Y); ctx.lineTo(hole.x + SHADOW_OFFSET_X, hole.y - 40 + SHADOW_OFFSET_Y); ctx.stroke(); ctx.fillStyle = SHADOW_COLOR; ctx.beginPath(); ctx.moveTo(hole.x + SHADOW_OFFSET_X, hole.y - 40 + SHADOW_OFFSET_Y); ctx.lineTo(hole.x - 20 + SHADOW_OFFSET_X, hole.y - 30 + SHADOW_OFFSET_Y); ctx.lineTo(hole.x + SHADOW_OFFSET_X, hole.y - 20 + SHADOW_OFFSET_Y); ctx.closePath(); ctx.fill(); if (ball.radius > 0.5) { ctx.fillStyle = SHADOW_COLOR; ctx.beginPath(); ctx.ellipse(ball.x + SHADOW_OFFSET_X, ball.y + SHADOW_OFFSET_Y, ball.radius, ball.radius * 0.9, 0, 0, Math.PI * 2); ctx.fill(); } }
+        ctx.restore();
+    }
+    function drawBall() { if (ball.radius < 0.5) return; ctx.save(); ctx.translate(ball.x, ball.y); ctx.rotate(ball.rotation); ctx.beginPath(); ctx.arc(0, 0, ball.radius, 0, Math.PI * 2); ctx.fillStyle = 'white'; ctx.fill(); ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, 0, ball.radius, Math.PI * 0.5, Math.PI * 1.5); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, ball.radius, Math.PI * 1.5, Math.PI * 0.5); ctx.stroke(); ctx.restore(); }
+    function drawFlag() { ctx.strokeStyle = '#333333'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(hole.x, hole.y); ctx.lineTo(hole.x, hole.y - 40); ctx.stroke(); ctx.fillStyle = PALETTE.flag; ctx.beginPath(); ctx.moveTo(hole.x, hole.y - 40); ctx.lineTo(hole.x - 20, hole.y - 30); ctx.lineTo(hole.x, hole.y - 20); ctx.closePath(); ctx.fill(); }
+    function drawHole() { ctx.beginPath(); ctx.arc(hole.x, hole.y, hole.radius, 0, Math.PI * 2); ctx.fillStyle = PALETTE.hole; ctx.fill(); ctx.closePath(); }
+    function drawEditorOverlay() { ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(level.start.x, level.start.y, initialBallRadius, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.fillStyle = PALETTE.hole; ctx.beginPath(); ctx.arc(level.hole.x, level.hole.y, 16, 0, Math.PI * 2); ctx.fill(); }
+    function drawAimLine() { if (isAiming) { const dx = mouse.x - ball.x; const dy = mouse.y - ball.y; const dist = Math.sqrt(dx * dx + dy * dy); if (dist < 1) { power = 0; return; } angle = Math.atan2(dy, dx); let targetX, targetY; if (dist > MAX_POWER_DIST ) { targetX = ball.x + Math.cos(angle) * MAX_POWER_DIST; targetY = ball.y + Math.sin(angle) * MAX_POWER_DIST; power = MAX_POWER_DIST / 10; } else { targetX = mouse.x; targetY = mouse.y; power = dist / 10; } ctx.beginPath(); ctx.moveTo(ball.x, ball.y); ctx.lineTo(targetX, targetY); ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)'; ctx.lineWidth = 3; ctx.setLineDash([10, 10]); ctx.stroke(); ctx.closePath(); ctx.setLineDash([]); ctx.lineWidth = 1; } }
+    function drawStrokes() { ctx.font = "bold 22px 'Comic Sans MS', cursive, sans-serif"; ctx.fillStyle = "white"; ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 5; ctx.fillText("Lyönnit: " + strokes, 20, 35); ctx.shadowBlur = 0; }
+    
+    // Initializing
+    resetGame();
+    updateEditorUI();
+    update();
+</script>
+
+</body>
+</html>
