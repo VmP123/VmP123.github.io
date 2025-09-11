@@ -1,5 +1,5 @@
 import { GameStatus, PlayerType, SpecialPhaseType, TurnPhase, CombatResultsTable } from './constants.js';
-import { on } from './state.js';
+import { on, trigger } from './state.js';
 
 export class InfoArea {
     constructor(gameState, hexGrid, zoomFunction) {
@@ -8,7 +8,10 @@ export class InfoArea {
         this.zoomFunction = zoomFunction;
         this.svg = null;
 
-        on('combatResultUpdated', this.refreshCombatResultText.bind(this));
+        on('combatResultUpdated', () => {
+            this.refreshCombatResultText();
+            this.highlightCrtResult();
+        });
         on('winnerUpdated', this.refreshStatusText.bind(this));
         on('currentSpecialPhaseUpdated', this.updatePhaseText.bind(this));
         on('currentSpecialPhaseUpdated', this.refreshStatusText.bind(this));
@@ -17,10 +20,11 @@ export class InfoArea {
         on('phaseChanged', () => {
             this.updatePhaseText();
             this.updatePlayerText();
+            this.highlightCrtResult(); // Clear highlight on phase change
         });
     }
 
-    updatePhaseText() {			
+    updatePhaseText() {
         let currentPhase = null;
 
         const currentSpecialPhase = this.gameState.getCurrentSpecialPhase();
@@ -78,125 +82,277 @@ export class InfoArea {
     }
 
     endPhase() {
-        window.game.gameEngine.endCurrentPhase();
+        trigger('endPhaseRequested');
     }
 
     draw() {
         this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        const svgNS = 'http://www.w3.org/2000/svg';
 
-        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        text.setAttribute('fill', 'black');
-        text.setAttribute('font-family', "Arial, sans-serif");
-        text.setAttribute('font-size', '22px');
-        text.style.userSelect = 'none';
-    
+        const createTextElement = (content, className) => {
+            const textElement = document.createElementNS(svgNS, 'text');
+            textElement.setAttribute('fill', 'black');
+            textElement.setAttribute('font-family', "Arial, sans-serif");
+            textElement.setAttribute('font-size', '22px');
+            textElement.style.userSelect = 'none';
+            if (className) {
+                textElement.setAttribute('class', className);
+            }
+            textElement.textContent = content;
+            return textElement;
+        };
+
+        const createSeparator = (y) => {
+            const line = document.createElementNS(svgNS, 'line');
+            line.setAttribute('x1', 20);
+            line.setAttribute('y1', y);
+            line.setAttribute('x2', 330);
+            line.setAttribute('y2', y);
+            line.setAttribute('stroke', '#ccc');
+            line.setAttribute('stroke-width', '1');
+            return line;
+        };
+
         const x = 50;
-        let currentY = 50; // Use a variable for Y position
+        let currentY = 40;
 
-        const tspan1 = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-        tspan1.textContent = "PLAYER: " + this.gameState.activePlayer.toUpperCase();
-        tspan1.setAttribute('x', x);
-        tspan1.setAttribute('dy', '1.2em');
-        tspan1.setAttribute('class', 'turn');
+        // --- 1. Game Status Group ---
+        const playerText = createTextElement("PLAYER: " + this.gameState.activePlayer.toUpperCase(), 'turn');
+        playerText.setAttribute('x', x);
+        playerText.setAttribute('y', currentY);
+        this.svg.appendChild(playerText);
+        currentY += 30;
 
-        const tspan2 = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-        tspan2.textContent = "PHASE: " + this.gameState.currentTurnPhase.toUpperCase();
-        tspan2.setAttribute('class', 'phase');	
-        tspan2.setAttribute('x', x);
-        tspan2.setAttribute('dy', '1.2em');
+        const phaseText = createTextElement("PHASE: " + this.gameState.currentTurnPhase.toUpperCase(), 'phase');
+        phaseText.setAttribute('x', x);
+        phaseText.setAttribute('y', currentY);
+        this.svg.appendChild(phaseText);
+        currentY += 30;
 
-        const tspan3 = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-        tspan3.textContent = "COMBAT: -";
-        tspan3.setAttribute('class', 'combatResult');	
-        tspan3.setAttribute('x', x);
-        tspan3.setAttribute('dy', '1.2em');
+        const combatResultText = createTextElement("COMBAT: -", 'combatResult');
+        combatResultText.setAttribute('x', x);
+        combatResultText.setAttribute('y', currentY);
+        this.svg.appendChild(combatResultText);
+        currentY += 30;
 
-        text.appendChild(tspan1);
-        text.appendChild(tspan2);
-        text.appendChild(tspan3);
+        // --- 2. Action Group ---
+        const statusText = createTextElement("", 'statusText');
+        statusText.setAttribute('x', x);
+        statusText.setAttribute('y', currentY);
+        // statusText.setAttribute('font-style', 'italic');
+        statusText.setAttribute('font-size', '20px');
+        statusText.setAttribute('fill', 'red');
+        this.svg.appendChild(statusText);
+        this.refreshStatusText(); // Initial population
+        currentY += 40;
 
-        text.setAttribute('y', currentY); // Set initial Y for text block
-        this.svg.appendChild(text);
-
-        currentY += 90; // Move Y down for the next element
-
-        const endPhaseButton = this.createButtonSVG(100, 30, "End phase");
-        endPhaseButton.setAttribute('class', 'endPhaseButton');	
-        endPhaseButton.setAttribute('x', x);
+        const endPhaseButton = this.createButtonSVG(120, 35, "End Phase");
+        endPhaseButton.setAttribute('class', 'endPhaseButton');
+        endPhaseButton.setAttribute('x', x - 2);
         endPhaseButton.setAttribute('y', currentY);
         this.svg.appendChild(endPhaseButton);
         endPhaseButton.addEventListener('click', () => this.endPhase());
+        currentY += 55;
 
-        currentY += 55; // Move Y down for the next element
+        this.svg.appendChild(createSeparator(currentY));
+        currentY += 40;
 
-        const statusText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        statusText.setAttribute('fill', 'black');
-        statusText.setAttribute('font-family', "Arial, sans-serif");
-        statusText.setAttribute('font-size', '22px');
-        statusText.style.userSelect = 'none';
-        statusText.textContent = ""
-        statusText.setAttribute('class', 'statusText');	
-        statusText.setAttribute('x', x);
-        statusText.setAttribute('y', currentY);
-        this.svg.appendChild(statusText);
+        // --- 3. Combat Info Group ---
+        const crt = this.drawCrt(x, currentY);
+        this.svg.appendChild(crt);
+        const crtHeight = crt.getBBox().height;
+        currentY += crtHeight + 30;
 
-        currentY += 50; // Move Y down for the next element
-
-        // Zoom Toggle Button
-        const zoomButton = this.createButtonSVG(100, 30, "Zoom"); // Text "Zoom"
-        zoomButton.setAttribute('x', x);
-        zoomButton.setAttribute('y', 880 - 50); // Position at bottom-left
+        // --- 4. View Controls Group (at bottom) ---
+        const zoomButton = this.createButtonSVG(100, 30, "Zoom");
+        zoomButton.setAttribute('x', x - 2);
+        zoomButton.setAttribute('y', 880 - 60);
         this.svg.appendChild(zoomButton);
         zoomButton.addEventListener('click', () => this.zoomFunction());
+    }
 
-        const crt = this.drawCrt(x, 250); // Hardcode Y for crt
-        this.svg.appendChild(crt);
+    highlightCrtResult() {
+        const highlightsGroup = this.svg.querySelector('.crt-highlights');
+        if (!highlightsGroup) return;
+
+        // Clear previous highlights
+        while (highlightsGroup.firstChild) {
+            highlightsGroup.removeChild(highlightsGroup.firstChild);
+        }
+
+        if (!this.gameState.crtColumn || !this.gameState.d6Value) {
+            return;
+        }
+
+        const rowIndex = CombatResultsTable.indexOf(this.gameState.crtColumn);
+        const colIndex = this.gameState.d6Value; // d6Value is 1-6
+
+        if (rowIndex === -1) return;
+
+        const { x, y, colWidth, rowHeight, firstColWidth } = this.svg.querySelector('.crt-table').dataset;
+
+        const highlightX = parseFloat(x) + parseFloat(firstColWidth) + (colIndex - 1) * parseFloat(colWidth);
+        const highlightY = parseFloat(y) + (rowIndex + 1) * parseFloat(rowHeight);
+
+        const highlightRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        highlightRect.setAttribute('x', highlightX);
+        highlightRect.setAttribute('y', highlightY);
+        highlightRect.setAttribute('width', colWidth);
+        highlightRect.setAttribute('height', rowHeight);
+        highlightRect.setAttribute('fill', 'yellow');
+        highlightRect.setAttribute('opacity', '0.4');
+        highlightRect.style.pointerEvents = 'none'; // Make sure it doesn't block clicks
+        
+        highlightsGroup.appendChild(highlightRect);
     }
 
     drawCrt(x, y) {
-        const crtGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const crtGroup = document.createElementNS(svgNS, 'g');
         crtGroup.style.userSelect = 'none';
         crtGroup.setAttribute('class', 'crt-table');
 
+        // --- Style and Layout Constants ---
+        const colWidth = 40;
+        const rowHeight = 25;
+        const firstColWidth = 55;
         const header = ['Ratio', '1', '2', '3', '4', '5', '6'];
-        const colWidth = 35;
-        const rowHeight = 20;
-        const fontSize = '16px';
-        const firstColWidth = 50;
+        const tableWidth = firstColWidth + (header.length - 1) * colWidth;
+        const tableHeight = (CombatResultsTable.length + 1) * rowHeight;
+        const FONT_SIZE = '14px';
+        const HEADER_FILL = '#ebf2fa';
+        const BORDER_COLOR = 'black';
+        const ROW_FILL_ODD = '#f0f0f0';
+        const ROW_FILL_EVEN = '#ffffff';
+        const PADDING = 5;
+        const BORDER_RADIUS = 6;
 
-        // Draw header
-        header.forEach((text, i) => {
-            const headerCell = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            headerCell.setAttribute('x', x + (i === 0 ? 0 : firstColWidth + (i - 1) * colWidth));
-            headerCell.setAttribute('y', y);
-            headerCell.setAttribute('font-size', fontSize);
-            headerCell.setAttribute('font-weight', 'bold');
-            headerCell.textContent = text;
-            crtGroup.appendChild(headerCell);
-        });
+        // Store layout in dataset for highlighter
+        crtGroup.dataset.x = x;
+        crtGroup.dataset.y = y;
+        crtGroup.dataset.colWidth = colWidth;
+        crtGroup.dataset.rowHeight = rowHeight;
+        crtGroup.dataset.firstColWidth = firstColWidth;
 
-        // Draw rows
+        // --- Create layer groups for ordering ---
+        const backgroundsGroup = document.createElementNS(svgNS, 'g');
+        const highlightsGroup = document.createElementNS(svgNS, 'g');
+        highlightsGroup.setAttribute('class', 'crt-highlights');
+        const contentGroup = document.createElementNS(svgNS, 'g');
+        crtGroup.append(backgroundsGroup, highlightsGroup, contentGroup);
+
+        // --- Elements ---
+
+        // Title
+        const title = document.createElementNS(svgNS, 'text');
+        title.setAttribute('x', x);
+        title.setAttribute('y', y - PADDING * 2);
+        title.setAttribute('font-size', '16px');
+        title.setAttribute('font-weight', 'bold');
+        title.textContent = "Combat Results Table";
+        contentGroup.appendChild(title);
+
+        // Header Background (Path for rounded top corners)
+        const headerBgPath = document.createElementNS(svgNS, 'path');
+        const pathData = `
+            M ${x},${y + rowHeight}
+            L ${x},${y + BORDER_RADIUS}
+            A ${BORDER_RADIUS},${BORDER_RADIUS} 0 0 1 ${x + BORDER_RADIUS},${y}
+            L ${x + tableWidth - BORDER_RADIUS},${y}
+            A ${BORDER_RADIUS},${BORDER_RADIUS} 0 0 1 ${x + tableWidth},${y + BORDER_RADIUS}
+            L ${x + tableWidth},${y + rowHeight}
+            Z
+        `;
+        headerBgPath.setAttribute('d', pathData);
+        headerBgPath.setAttribute('fill', HEADER_FILL);
+        backgroundsGroup.appendChild(headerBgPath);
+
+        // Row Backgrounds
         CombatResultsTable.forEach((row, rowIndex) => {
             const yPos = y + (rowIndex + 1) * rowHeight;
-            
-            // Ratio
-            const ratioCell = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            ratioCell.setAttribute('x', x);
-            ratioCell.setAttribute('y', yPos);
-            ratioCell.setAttribute('font-size', fontSize);
-            ratioCell.textContent = row.ratioText;
-            crtGroup.appendChild(ratioCell);
+            const rowBg = document.createElementNS(svgNS, 'rect');
+            rowBg.setAttribute('x', x);
+            rowBg.setAttribute('y', yPos);
+            rowBg.setAttribute('width', tableWidth);
+            rowBg.setAttribute('height', rowHeight);
+            rowBg.setAttribute('fill', rowIndex % 2 === 0 ? ROW_FILL_ODD : ROW_FILL_EVEN);
+            backgroundsGroup.appendChild(rowBg);
+        });
 
-            // Results
+        // Header Text
+        header.forEach((text, i) => {
+            const currentCellWidth = i === 0 ? firstColWidth : colWidth;
+            const cellX = x + (i === 0 ? 0 : firstColWidth + (i - 1) * colWidth);
+            const headerCell = document.createElementNS(svgNS, 'text');
+            headerCell.setAttribute('x', cellX + currentCellWidth / 2);
+            headerCell.setAttribute('y', y + rowHeight / 2);
+            headerCell.setAttribute('font-size', FONT_SIZE);
+            headerCell.setAttribute('font-weight', 'bold');
+            headerCell.setAttribute('dominant-baseline', 'middle');
+            headerCell.setAttribute('text-anchor', 'middle');
+            headerCell.textContent = text;
+            contentGroup.appendChild(headerCell);
+        });
+
+        // Row and Cell Text
+        CombatResultsTable.forEach((row, rowIndex) => {
+            const yPos = y + (rowIndex + 1) * rowHeight;
+            // Ratio cell text
+            const ratioCell = document.createElementNS(svgNS, 'text');
+            ratioCell.setAttribute('x', x + firstColWidth / 2);
+            ratioCell.setAttribute('y', yPos + rowHeight / 2);
+            ratioCell.setAttribute('font-size', FONT_SIZE);
+            ratioCell.setAttribute('dominant-baseline', 'middle');
+            ratioCell.setAttribute('text-anchor', 'middle');
+            ratioCell.textContent = row.ratioText;
+            contentGroup.appendChild(ratioCell);
+
+            // Result cells text
             for (let i = 1; i <= 6; i++) {
-                const resultCell = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                resultCell.setAttribute('x', x + firstColWidth + (i - 1) * colWidth);
-                resultCell.setAttribute('y', yPos);
-                resultCell.setAttribute('font-size', fontSize);
+                const cellX = x + firstColWidth + (i - 1) * colWidth;
+                const resultCell = document.createElementNS(svgNS, 'text');
+                resultCell.setAttribute('x', cellX + colWidth / 2);
+                resultCell.setAttribute('y', yPos + rowHeight / 2);
+                resultCell.setAttribute('font-size', FONT_SIZE);
+                resultCell.setAttribute('dominant-baseline', 'middle');
+                resultCell.setAttribute('text-anchor', 'middle');
                 resultCell.textContent = row[i.toString()];
-                crtGroup.appendChild(resultCell);
+                contentGroup.appendChild(resultCell);
             }
         });
+
+        // Main border (drawn on top of backgrounds)
+        const borderRect = document.createElementNS(svgNS, 'rect');
+        borderRect.setAttribute('x', x);
+        borderRect.setAttribute('y', y);
+        borderRect.setAttribute('width', tableWidth);
+        borderRect.setAttribute('height', tableHeight);
+        borderRect.setAttribute('fill', 'none');
+        borderRect.setAttribute('stroke', BORDER_COLOR);
+        borderRect.setAttribute('stroke-width', '2'); // Match unit selection
+        borderRect.setAttribute('rx', BORDER_RADIUS);
+        contentGroup.appendChild(borderRect);
+
+        // Internal grid lines (drawn on top of backgrounds)
+        for (let i = 1; i < header.length; i++) {
+            const lineX = x + (i === 1 ? firstColWidth : firstColWidth + (i - 1) * colWidth);
+            const line = document.createElementNS(svgNS, 'line');
+            line.setAttribute('x1', lineX);
+            line.setAttribute('y1', y);
+            line.setAttribute('x2', lineX);
+            line.setAttribute('y2', y + tableHeight);
+            line.setAttribute('stroke', BORDER_COLOR);
+            line.setAttribute('stroke-width', '1');
+            contentGroup.appendChild(line);
+        }
+        const headerLine = document.createElementNS(svgNS, 'line');
+        headerLine.setAttribute('x1', x);
+        headerLine.setAttribute('y1', y + rowHeight);
+        headerLine.setAttribute('x2', x + tableWidth);
+        headerLine.setAttribute('y2', y + rowHeight);
+        headerLine.setAttribute('stroke', BORDER_COLOR);
+        headerLine.setAttribute('stroke-width', '1');
+        contentGroup.appendChild(headerLine);
 
         return crtGroup;
     }

@@ -1,5 +1,6 @@
 import { ColorByPlayer, TurnPhase, SpecialPhaseType, HealthStatus, UnitProperties } from './constants.js';
 import { getHexWidth, getHexHeight, getMargin } from './utils.js';
+import { trigger } from './state.js';
 
 export class UnitView {
     constructor(unit, hexGridView, gameState) {
@@ -63,7 +64,7 @@ export class UnitView {
             if (this.hexGridView.viewController && this.hexGridView.viewController.panned) {
                 return;
             }
-            window.game.gameEngine.handleUnitClick(this.unit);
+            trigger('unitClicked', { unit: this.unit });
         };
         this.svg.addEventListener('click', handleClick);
     }

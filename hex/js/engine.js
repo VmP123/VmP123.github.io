@@ -1,11 +1,14 @@
 import { GameStatus, TurnPhase, PlayerType, SpecialPhaseType, HealthStatus, CombatResultsTable, CombatResultTableValueEffect, UnitProperties, TerrainProperties } from './constants.js';
-import { trigger } from './state.js';
+import { trigger, on } from './state.js';
 import { getAdjacentHexes } from './utils.js';
 
 export class GameEngine {
     constructor(gameState, hexGrid) {
         this.gameState = gameState;
         this.hexGrid = hexGrid;
+
+        on('unitClicked', (data) => this.handleUnitClick(data.unit));
+        on('endPhaseRequested', () => this.endCurrentPhase());
     }
 
     handleUnitClick(unit) {

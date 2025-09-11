@@ -248,6 +248,6 @@ class Game {
 }
 
 window.onload = () => {
-    window.game = new Game();
-    window.game.init();
+    const game = new Game();
+    game.init();
 };
