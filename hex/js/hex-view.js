@@ -1,4 +1,4 @@
-import { TerrainType, ColorByPlayer } from './Constants.js';
+import { TerrainType, ColorByPlayer } from './constants.js';
 import { SvgService } from './svg-service.js';
 import { getHexWidth, getHexHeight, getMargin } from './utils.js';
 

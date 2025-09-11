@@ -1,4 +1,4 @@
-import { TerrainType } from './Constants.js';
+import { TerrainType } from './constants.js';
 
 export class Hex {
 	constructor(x, y, hexGrid, isEditor = false) {
