@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hex Map Editor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="editor-container">
+        <div id="map-container">
+            <div id="editor-map-wrapper">
+                <svg id="main"></svg>
+            </div>
+        </div>
+        <div id="editor-controls">
+            <h2>Editor</h2>
+            <!-- Terrain Palette -->
+            <div id="terrain-palette">
+                <h3>Terrain</h3>
+                <!-- Terrain buttons will be added here -->
+            </div>
+            <!-- Unit Palette -->
+            <div id="unit-palette">
+                <h3>Units</h3>
+                <!-- Unit buttons will be added here -->
+            </div>
+            <!-- Player Selection -->
+            <div id="player-selection">
+                <h3>Player</h3>
+                <select id="player-select">
+                    <option value="0">Grey</option>
+                    <option value="1">Green</option>
+                </select>
+            </div>
+            <!-- Import/Export -->
+            <div id="import-export">
+                <h3>Import/Export</h3>
+                <input type="file" id="import-map" accept=".json">
+                <button id="export-map">Export Map</button>
+            </div>
+            <div id="map-size">
+                <h3>Map Size</h3>
+                <label for="cols">Cols:</label>
+                <input type="number" id="cols" value="10" min="1">
+                <label for="rows">Rows:</label>
+                <input type="number" id="rows" value="10" min="1">
+                <button id="set-size">Set Size</button>
+            </div>
+            <div id="zoom-controls">
+                <h3>Zoom</h3>
+                <button id="zoom">Zoom</button>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="js/editor.js"></script>
+</body>
+</html>

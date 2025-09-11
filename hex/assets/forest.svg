@@ -1,0 +1,14 @@
+<svg viewBox="0 0 75 75" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="black" stroke-width="2" fill="none">
+    <!-- Spruce Tree 1 -->
+    <line x1="30" y1="65" x2="30" y2="30" /> <!-- Trunk -->
+    <polyline points="20,40 30,30 40,40" /> <!-- Top layer -->
+    <polyline points="20,50 30,40 40,50" /> <!-- Middle layer -->
+    <polyline points="20,60 30,50 40,60" /> <!-- Bottom layer -->
+
+    <!-- Spruce Tree 2 (smaller, to the side) -->
+    <line x1="55" y1="60" x2="55" y2="35" /> <!-- Trunk -->
+    <polyline points="45,45 55,35 65,45" /> <!-- Top layer -->
+    <polyline points="45,55 55,45 65,55" /> <!-- Bottom layer -->
+  </g>
+</svg>

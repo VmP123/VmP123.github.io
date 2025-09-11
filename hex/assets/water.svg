@@ -1,0 +1,9 @@
+<svg viewBox="0 -5 75 75" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="black" stroke-width="2" fill="none">
+    <!-- Wavy lines for water -->
+
+    <path d="M 10,20 Q 15,25 20,20 T 30,20 T 40,20 T 50,20 T 60,20" />
+    <path d="M 15,35 Q 20,40 25,35 T 35,35 T 45,35 T 55,35 T 65,35" />
+    <path d="M 10,50 Q 15,55 20,50 T 30,50 T 40,50 T 50,50 T 60,50" />
+  </g>
+</svg>
