@@ -44,6 +44,7 @@ class Game {
         this.START_TEXT_DELAY = 4000;
         this.CENTER_BIAS_PROBABILITY = 0.4;
         this.MAX_TILT_ANGLE = Math.PI / 18; // n. 10 astetta
+        this.SCENERY_COUNT = 14;
 
         this.PLAYER_CAR_BODY = '#0091ff';
         this.PLAYER_CAR_ROOF = '#5ac2ff';
@@ -725,10 +726,26 @@ class Scenery {
     constructor(game) {
         this.game = game;
         this.sceneryObjects = [];
-        const objectCount = 8;
-        for (let i = 0; i < objectCount; i++) {
-            const initialY = (i * (this.game.BASE_HEIGHT / objectCount));
-            this.sceneryObjects.push(this.createRandomObject(initialY));
+        
+        // Määritetään "hihna", jolle puut asetetaan. 
+        // Sen pitää olla reilusti ruutua pidempi (BASE_HEIGHT + buffer),
+        // jotta ylin puu on varmasti kokonaan piilossa (runkoineen päivineen).
+        // Puun korkeus on n. 40-50px, joten 300px puskuri on turvallinen.
+        const buffer = 300; 
+        const totalHeight = this.game.BASE_HEIGHT + buffer;
+        
+        // Lasketaan välimatka tälle pidennetylle alueelle.
+        this.spacing = totalHeight / this.game.SCENERY_COUNT;
+
+        for (let i = 0; i < this.game.SCENERY_COUNT; i++) {
+            // Aloitetaan luominen hieman ruudun alareunan alapuolelta (+50px),
+            // jotta puut eivät lopu kesken alhaalta heti pelin alkaessa.
+            const startOffset = 50;
+            
+            // Lasketaan sijainti: Alhaalta ylöspäin.
+            const y = (this.game.BASE_HEIGHT + startOffset) - (i * this.spacing);
+            
+            this.sceneryObjects.push(this.createRandomObject(y));
         }
     }
 
@@ -741,10 +758,15 @@ class Scenery {
             const obj = this.sceneryObjects[i];
             obj.update(dt, roadSpeed);
 
-            // Jos menee alas ohi, kierrätetään
+            // Kierrätys: Kun puu on mennyt riittävän alas (ruudun korkeus + pieni marginaali)
             if (obj.y > this.game.BASE_HEIGHT + 100) {
+                
+                // Etsitään, missä kohtaa ylin puu (pienin y) tällä hetkellä menee.
                 const minY = Math.min(...this.sceneryObjects.map(o => o.y));
-                const newY = Math.min(-50, minY - (this.game.BASE_HEIGHT / 6));
+                
+                // Asetetaan uusi puu jonon jatkoksi yläpäähän.
+                const newY = minY - this.spacing;
+                
                 this.sceneryObjects[i] = this.createRandomObject(newY);
             }
         }
@@ -752,7 +774,15 @@ class Scenery {
 
     draw() {
         this.drawGround();
-        this.sceneryObjects.forEach(obj => obj.draw());
+
+        // Luodaan väliaikainen kopio listasta ja järjestetään se Y-koordinaatin mukaan nousevasti.
+        // [...this.sceneryObjects] luo kopion (shallow copy), jotta emme sekoita alkuperäisen
+        // listan järjestystä, jota update-metodi saattaa käyttää.
+        const objectsToDraw = [...this.sceneryObjects].sort((a, b) => a.y - b.y);
+
+        // Piirretään järjestetyssä järjestyksessä:
+        // Pienin Y (kauimmainen) ensin, suurin Y (lähin) viimeisenä.
+        objectsToDraw.forEach(obj => obj.draw());
     }
 
     drawGround() {
