@@ -513,6 +513,133 @@ class RoadBlock extends BaseObstacle {
     }
 }
 
+class WarningTriangle extends BaseObstacle {
+    constructor(game, lane) {
+        super(game, lane);
+        this.speed = 0;
+        this.width = game.LANE_WIDTH * 0.6;
+        this.height = 50;
+        this.x = game.ROAD_X + (this.lane * game.LANE_WIDTH) + (game.LANE_WIDTH / 2) - (this.width / 2);
+    }
+
+    draw() {
+        const sx = this.x * this.game.scaleW;
+        const sy = this.y * this.game.scaleH;
+        const sw = this.width * this.game.scaleW;
+        const sh = this.height * this.game.scaleH;
+        const ctx = this.game.ctx;
+
+        ctx.save();
+
+        // Punainen varokolmio
+        const triangleCenterX = sx + sw / 2;
+        const triangleCenterY = sy + sh / 2;
+        const triangleSize = 20 * this.game.scaleW;
+        const innerTriangleSize = 8 * this.game.scaleW;
+        const cornerRadius = 2 * this.game.scaleW;
+        const innerCornerRadius = 1.5 * this.game.scaleW;
+
+        // Apufunktio suorakulmaiselle kolmiolle pyöristettyillä kulmilla
+        const drawRoundedTriangle = (centerX, centerY, size, radius) => {
+            const p1 = { x: centerX, y: centerY - size };
+            const p2 = { x: centerX + size, y: centerY + size };
+            const p3 = { x: centerX - size, y: centerY + size };
+
+            // Lasketaan vektorit ja niiden pituudet
+            const v12 = { x: p2.x - p1.x, y: p2.y - p1.y };
+            const len12 = Math.sqrt(v12.x * v12.x + v12.y * v12.y);
+            const u12 = { x: v12.x / len12, y: v12.y / len12 };
+
+            const v23 = { x: p3.x - p2.x, y: p3.y - p2.y };
+            const len23 = Math.sqrt(v23.x * v23.x + v23.y * v23.y);
+            const u23 = { x: v23.x / len23, y: v23.y / len23 };
+
+            const v31 = { x: p1.x - p3.x, y: p1.y - p3.y };
+            const len31 = Math.sqrt(v31.x * v31.x + v31.y * v31.y);
+            const u31 = { x: v31.x / len31, y: v31.y / len31 };
+
+            ctx.beginPath();
+
+            // Aloita ensimmäisen kulman jälkeen
+            const start1 = { x: p1.x + u12.x * radius, y: p1.y + u12.y * radius };
+            ctx.moveTo(start1.x, start1.y);
+
+            // Sivu 1->2
+            const end1 = { x: p2.x - u12.x * radius, y: p2.y - u12.y * radius };
+            ctx.lineTo(end1.x, end1.y);
+
+            // Kulma p2 pyöristys
+            const tangent2Start = { x: p2.x - u12.x * radius, y: p2.y - u12.y * radius };
+            const tangent2End = { x: p2.x + u23.x * radius, y: p2.y + u23.y * radius };
+            ctx.arcTo(p2.x, p2.y, tangent2End.x, tangent2End.y, radius);
+
+            // Sivu 2->3
+            const end2 = { x: p3.x - u23.x * radius, y: p3.y - u23.y * radius };
+            ctx.lineTo(end2.x, end2.y);
+
+            // Kulma p3 pyöristys
+            const tangent3Start = { x: p3.x - u23.x * radius, y: p3.y - u23.y * radius };
+            const tangent3End = { x: p3.x + u31.x * radius, y: p3.y + u31.y * radius };
+            ctx.arcTo(p3.x, p3.y, tangent3End.x, tangent3End.y, radius);
+
+            // Sivu 3->1
+            const end3 = { x: p1.x - u31.x * radius, y: p1.y - u31.y * radius };
+            ctx.lineTo(end3.x, end3.y);
+
+            // Kulma p1 pyöristys
+            const tangent1Start = { x: p1.x - u31.x * radius, y: p1.y - u31.y * radius };
+            ctx.arcTo(p1.x, p1.y, start1.x, start1.y, radius);
+
+            ctx.closePath();
+        };
+
+        var mainColor = this.game.UI_COLOR_RED; //'#ff0000';
+        var edgeColor =  "#ffffff" //"#fab906" //"#eafa06"; this.game.UI_COLOR_YELLOW;
+        var roadColor = '#666';
+
+        // Ulompi kolmio (punainen)
+        ctx.fillStyle =  mainColor 
+        drawRoundedTriangle(triangleCenterX, triangleCenterY, triangleSize, cornerRadius);
+        ctx.fill();
+
+        // Ulkoinen valkoinen reunus
+        ctx.strokeStyle = edgeColor
+        ctx.lineWidth = 2 * this.game.scaleW;
+        ctx.stroke();
+
+        // Sisäinen kolmio siirretty alaspäin
+        const innerTriangleCenterY = triangleCenterY + 3 * this.game.scaleW;
+
+        // Sisempi kolmio (harmaa, läpinäkyvä)
+        ctx.fillStyle = roadColor;
+        drawRoundedTriangle(triangleCenterX, innerTriangleCenterY, innerTriangleSize, innerCornerRadius);
+        ctx.fill();
+
+        // Sisäinen valkoinen reunus (kolon ympärille)
+        ctx.strokeStyle = edgeColor;
+        ctx.lineWidth = 2 * this.game.scaleW;
+        drawRoundedTriangle(triangleCenterX, innerTriangleCenterY, innerTriangleSize, innerCornerRadius);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+}
+
+class StoppedCar extends BaseObstacle {
+    constructor(game, lane, yPos) {
+        super(game, lane, yPos);
+        this.speed = 0;
+        this.width = this.game.CAR_WIDTH;
+        this.height = this.game.CAR_HEIGHT;
+        this.color = game.OBSTACLE_COLORS[Math.floor(Math.random() * game.OBSTACLE_COLORS.length)];
+        this.x = game.ROAD_X + (this.lane * game.LANE_WIDTH) + (game.LANE_WIDTH / 2) - (this.width / 2);
+    }
+
+    draw() {
+        GameObject.renderCar(this.game, this.x, this.y, this.width, this.height, this.color.body, this.color.roof);
+    }
+}
+
 class Pothole extends BaseObstacle {
     constructor(game, lane, yPos) {
         super(game, lane, yPos);
@@ -619,10 +746,21 @@ class ObstacleManager {
         if (Math.random() < spawnProbability) {
             const lane = Math.floor(this.game.centerBiasedRandom() * this.game.ROAD_LANE_COUNT);
 
-            // Luodaan ehdokaseste (puomi tai auto)
-            const newObs = (this.game.currentTraficSign === 'speed_50' && Math.random() < 0.3)
-                ? new RoadBlock(this.game, lane)
-                : new MovingCar(this.game, lane);
+            // Luodaan ehdokaseste (puomi, varoituskolmio+pysähtynyt auto, tai liikkuva auto)
+            let newObs;
+            const rand = Math.random();
+            
+            if (this.game.currentTraficSign === 'speed_50') {
+                if (rand < 0.1) {
+                    newObs = new RoadBlock(this.game, lane);
+                } else if (rand < 0.2) {
+                    newObs = new WarningTriangle(this.game, lane);
+                } else {
+                    newObs = new MovingCar(this.game, lane);
+                }
+            } else {
+                newObs = new MovingCar(this.game, lane);
+            }
 
             // Tarkistetaan onko kaistalla tilaa (ettei törmätä ruudulla)
             const isSafe = !this.obstacles
@@ -634,6 +772,11 @@ class ObstacleManager {
                     newObs.scored = true; // Kuoppa ja puomi yhdessä antavat vain yhden pisteen
                     this.obstacles.push(new Pothole(this.game, lane, newObs.y - 50));
                 }
+                else if (newObs instanceof WarningTriangle) {
+                    newObs.scored = true; // Kolmio ja auto yhdessä antavat vain yhden pisteen
+                    this.obstacles.push(new StoppedCar(this.game, lane, newObs.y - 140));
+                }
+                
                 this.obstacles.push(newObs);
             }
         }
