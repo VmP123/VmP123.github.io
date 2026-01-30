@@ -140,11 +140,12 @@
         let paletteTemplates = [];
         const gapBetweenWagons = 15;
         const DRAG_THRESHOLD = 5;
+        const ACTION_PIECE_DELAY = 2000;
         let dragStartPos = { x: 0, y: 0 };
         let hasExceededDragThreshold = false;
 
         const MIN_SPEED = 0;
-        const MAX_SPEED = 10;
+        const MAX_SPEED = 6;
         const SPEED_STEP = 1;
 
         const straightLength = 150; // -> 75
@@ -181,7 +182,7 @@
         }
 
         function isActionPiece(piece) {
-            return piece.type === 'decoupler' || piece.type === 'direction-changer' || piece.type === 'pause' || piece.type === 'sensor' || piece.type === 'traffic-light' || piece.type === 'one-way' || piece.type === 'track-direction' || piece.type === 'counter' || piece.type === 'timer' || piece.type === 'signal-latch' || piece.type === 'randomizer' || piece.type === 'car-sensor';
+            return piece.type === 'decoupler' || piece.type === 'direction-changer' || piece.type === 'pause' || piece.type === 'sensor' || piece.type === 'traffic-light' || piece.type === 'one-way' || piece.type === 'counter' || piece.type === 'timer' || piece.type === 'signal-latch' || piece.type === 'randomizer' || piece.type === 'car-sensor';
         }
 
         function drawStraight(ctx, x, y, rotation, length, fadeStart = false, fadeEnd = false, part = 'all') {
@@ -317,24 +318,57 @@
             ctx.restore();
         }
 
-        function drawDecoupler(ctx, x, y, rotation = 0, active = true) {
+        function drawDecoupler(ctx, x, y, rotation = 0, active = true, mode = 0, progress = 0) {
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate(rotation);
-            ctx.fillStyle = active ? 'rgba(255, 0, 0, 0.8)' : 'rgba(100, 100, 100, 0.5)';
+
+            let color = 'rgba(255, 0, 0, 0.8)'; // Decouple
+            if (mode === 1) color = 'rgba(0, 200, 0, 0.8)'; // Spawn
+            if (mode === 2) color = 'rgba(255, 140, 0, 0.8)'; // Delete
+
+            if (!active) color = 'rgba(100, 100, 100, 0.5)';
+
+            ctx.fillStyle = color;
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 1;
             const size = trackWidth * 0.8;
             ctx.fillRect(-size / 2, -size / 2, size, size);
             ctx.strokeRect(-size / 2, -size / 2, size, size);
+
             ctx.strokeStyle = active ? 'white' : 'rgba(200, 200, 200, 0.7)';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.moveTo(-size * 0.3, 0);
-            ctx.lineTo(-size * 0.1, 0);
-            ctx.moveTo(size * 0.1, 0);
-            ctx.lineTo(size * 0.3, 0);
+            if (mode === 0) {
+                // Decouple - dash
+                ctx.moveTo(-size * 0.3, 0);
+                ctx.lineTo(-size * 0.1, 0);
+                ctx.moveTo(size * 0.1, 0);
+                ctx.lineTo(size * 0.3, 0);
+            } else if (mode === 1) {
+                // Spawn - plus
+                ctx.moveTo(-size * 0.25, 0);
+                ctx.lineTo(size * 0.25, 0);
+                ctx.moveTo(0, -size * 0.25);
+                ctx.lineTo(0, size * 0.25);
+            } else if (mode === 2) {
+                // Delete - cross
+                ctx.moveTo(-size * 0.2, -size * 0.2);
+                ctx.lineTo(size * 0.2, size * 0.2);
+                ctx.moveTo(size * 0.2, -size * 0.2);
+                ctx.lineTo(-size * 0.2, size * 0.2);
+            }
             ctx.stroke();
+
+            if (progress > 0 && progress < 1) {
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-size / 2 + 2, size / 2 - 4);
+                ctx.lineTo(-size / 2 + 2 + (size - 4) * progress, size / 2 - 4);
+                ctx.stroke();
+            }
+
             ctx.restore();
         }
 
@@ -342,6 +376,7 @@
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate(rotation);
+            // Reverser mode (original Direction Changer)
             ctx.fillStyle = active ? 'rgba(0, 0, 255, 0.8)' : 'rgba(100, 100, 100, 0.5)';
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 1;
@@ -654,51 +689,60 @@
             ctx.restore();
         }
 
-        function drawDecoupler(ctx, x, y, rotation = 0, active = true) {
+        function drawDecoupler(ctx, x, y, rotation = 0, active = true, mode = 0, progress = 0) {
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate(rotation);
-            ctx.fillStyle = active ? 'rgba(255, 0, 0, 0.8)' : 'rgba(100, 100, 100, 0.5)';
+
+            let color = 'rgba(255, 0, 0, 0.8)'; // Decouple
+            if (mode === 1) color = 'rgba(0, 200, 0, 0.8)'; // Spawn
+            if (mode === 2) color = 'rgba(255, 140, 0, 0.8)'; // Delete
+
+            if (!active) color = 'rgba(100, 100, 100, 0.5)';
+
+            ctx.fillStyle = color;
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 1;
             const size = trackWidth * 0.8;
             ctx.fillRect(-size / 2, -size / 2, size, size);
             ctx.strokeRect(-size / 2, -size / 2, size, size);
+
             ctx.strokeStyle = active ? 'white' : 'rgba(200, 200, 200, 0.7)';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.moveTo(-size * 0.3, 0);
-            ctx.lineTo(-size * 0.1, 0);
-            ctx.moveTo(size * 0.1, 0);
-            ctx.lineTo(size * 0.3, 0);
+            if (mode === 0) {
+                // Decouple - dash
+                ctx.moveTo(-size * 0.3, 0);
+                ctx.lineTo(-size * 0.1, 0);
+                ctx.moveTo(size * 0.1, 0);
+                ctx.lineTo(size * 0.3, 0);
+            } else if (mode === 1) {
+                // Spawn - plus
+                ctx.moveTo(-size * 0.25, 0);
+                ctx.lineTo(size * 0.25, 0);
+                ctx.moveTo(0, -size * 0.25);
+                ctx.lineTo(0, size * 0.25);
+            } else if (mode === 2) {
+                // Delete - cross
+                ctx.moveTo(-size * 0.2, -size * 0.2);
+                ctx.lineTo(size * 0.2, size * 0.2);
+                ctx.moveTo(size * 0.2, -size * 0.2);
+                ctx.lineTo(-size * 0.2, size * 0.2);
+            }
             ctx.stroke();
+
+            if (progress > 0 && progress < 1) {
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-size / 2 + 2, size / 2 - 4);
+                ctx.lineTo(-size / 2 + 2 + (size - 4) * progress, size / 2 - 4);
+                ctx.stroke();
+            }
+
             ctx.restore();
         }
 
-        function drawDirectionChanger(ctx, x, y, rotation = 0, active = true) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(rotation);
-            ctx.fillStyle = active ? 'rgba(0, 0, 255, 0.8)' : 'rgba(100, 100, 100, 0.5)';
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 1;
-            const size = trackWidth * 0.8;
-            ctx.fillRect(-size / 2, -size / 2, size, size);
-            ctx.strokeRect(-size / 2, -size / 2, size, size);
-            ctx.strokeStyle = active ? 'white' : 'rgba(200, 200, 200, 0.7)';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(-size * 0.3, 0);
-            ctx.lineTo(size * 0.3, 0);
-            ctx.moveTo(-size * 0.1, -size * 0.2);
-            ctx.lineTo(-size * 0.3, 0);
-            ctx.lineTo(-size * 0.1, size * 0.2);
-            ctx.moveTo(size * 0.1, -size * 0.2);
-            ctx.lineTo(size * 0.3, 0);
-            ctx.lineTo(size * 0.1, size * 0.2);
-            ctx.stroke();
-            ctx.restore();
-        }
 
         function drawPause(ctx, x, y, rotation = 0, active = true) {
             ctx.save();
@@ -822,7 +866,7 @@
             ctx.restore();
         }
 
-        function drawOneWay(ctx, x, y, rotation = 0, direction = 0, active = true) {
+        function drawOneWay(ctx, x, y, rotation = 0, direction = 0, active = true, mode = 0) {
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate(rotation);
@@ -830,58 +874,50 @@
             ctx.fillStyle = active ? 'rgba(0, 150, 200, 0.8)' : 'rgba(100, 100, 100, 0.5)';
             ctx.strokeStyle = 'black';
             ctx.lineWidth = 1;
+
+            // Shape is always square for visual consistency
             ctx.fillRect(-size / 2, -size / 2, size, size);
             ctx.strokeRect(-size / 2, -size / 2, size, size);
+
             ctx.save();
             ctx.rotate(direction);
             ctx.strokeStyle = active ? 'white' : 'rgba(200, 200, 200, 0.7)';
             ctx.fillStyle = active ? 'white' : 'rgba(200, 200, 200, 0.7)';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(-size * 0.3, 0);
-            ctx.lineTo(size * 0.15, 0);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(size * 0.15, 0);
-            ctx.lineTo(0, -size * 0.2);
-            ctx.lineTo(size * 0.3, 0);
-            ctx.lineTo(0, size * 0.2);
-            ctx.closePath();
-            ctx.fill();
+
+            if (mode === 1) {
+                // "Double-stem" arrow for track-wide mode
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(-size * 0.35, -size * 0.08);
+                ctx.lineTo(size * 0.15, -size * 0.08);
+                ctx.moveTo(-size * 0.35, size * 0.08);
+                ctx.lineTo(size * 0.15, size * 0.08);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(size * 0.15, -size * 0.25);
+                ctx.lineTo(size * 0.35, 0);
+                ctx.lineTo(size * 0.15, size * 0.25);
+                ctx.closePath();
+                ctx.fill();
+            } else {
+                // "Single-stem" arrow (original) for local mode
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(-size * 0.3, 0);
+                ctx.lineTo(size * 0.15, 0);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(size * 0.15, 0);
+                ctx.lineTo(0, -size * 0.2);
+                ctx.lineTo(size * 0.3, 0);
+                ctx.lineTo(0, size * 0.2);
+                ctx.closePath();
+                ctx.fill();
+            }
             ctx.restore();
             ctx.restore();
         }
 
-        function drawTrackDirection(ctx, x, y, rotation = 0, direction = 0, active = true) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(rotation);
-            const size = trackWidth * 0.8;
-            ctx.fillStyle = active ? 'rgba(0, 180, 150, 0.8)' : 'rgba(100, 100, 100, 0.5)';
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 1;
-            ctx.fillRect(-size / 2, -size / 2, size, size);
-            ctx.strokeRect(-size / 2, -size / 2, size, size);
-            ctx.save();
-            ctx.rotate(direction);
-            ctx.strokeStyle = active ? 'white' : 'rgba(200, 200, 200, 0.7)';
-            ctx.fillStyle = active ? 'white' : 'rgba(200, 200, 200, 0.7)';
-            ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            ctx.moveTo(-size * 0.35, -size * 0.08);
-            ctx.lineTo(size * 0.15, -size * 0.08);
-            ctx.moveTo(-size * 0.35, size * 0.08);
-            ctx.lineTo(size * 0.15, size * 0.08);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(size * 0.15, -size * 0.25);
-            ctx.lineTo(size * 0.35, 0);
-            ctx.lineTo(size * 0.15, size * 0.25);
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
-            ctx.restore();
-        }
 
         function drawSwitch(ctx, x, y, rotation, type, state, part = 'all') {
             const isLeft = type === 'switch-left';
@@ -1083,9 +1119,9 @@
                             piece.x = position.x;
                             piece.y = position.y;
                             piece.rotation = position.rotation;
-                            drawDecoupler(buildCtx, position.x, position.y, position.rotation, piece.active !== false);
+                            drawDecoupler(buildCtx, position.x, position.y, position.rotation, piece.active !== false, piece.mode || 0, piece.actionProgress || 0);
                         } else {
-                            drawDecoupler(buildCtx, piece.x, piece.y, piece.rotation || 0, piece.active !== false);
+                            drawDecoupler(buildCtx, piece.x, piece.y, piece.rotation || 0, piece.active !== false, piece.mode || 0, piece.actionProgress || 0);
                         }
                         break;
                     case 'direction-changer':
@@ -1158,24 +1194,9 @@
                             piece.x = position6.x;
                             piece.y = position6.y;
                             piece.rotation = position6.rotation;
-                            drawOneWay(buildCtx, position6.x, position6.y, position6.rotation, piece.direction || 0, piece.active !== false);
+                            drawOneWay(buildCtx, position6.x, position6.y, position6.rotation, piece.direction || 0, piece.active !== false, piece.mode || 0);
                         } else {
-                            drawOneWay(buildCtx, piece.x, piece.y, piece.rotation || 0, piece.direction || 0, piece.active !== false);
-                        }
-                        break;
-                    case 'track-direction':
-                        const parentTrack7 = trackPieces.find(track => track.id === piece.onTrackId);
-                        if (parentTrack7 && !piece.isBeingDragged) {
-                            const position7 = getPositionOnTrack({
-                                currentTrackPiece: parentTrack7,
-                                positionOnTrack: piece.positionOnTrack
-                            });
-                            piece.x = position7.x;
-                            piece.y = position7.y;
-                            piece.rotation = position7.rotation;
-                            drawTrackDirection(buildCtx, position7.x, position7.y, position7.rotation, piece.direction || 0, piece.active !== false);
-                        } else {
-                            drawTrackDirection(buildCtx, piece.x, piece.y, piece.rotation || 0, piece.direction || 0, piece.active !== false);
+                            drawOneWay(buildCtx, piece.x, piece.y, piece.rotation || 0, piece.direction || 0, piece.active !== false, piece.mode || 0);
                         }
                         break;
                     case 'timer':
@@ -1502,13 +1523,12 @@
                 else if (draggedPieceType === 'curve45-small') drawCurve(buildCtx, mousePos.x, mousePos.y, draggedPieceRotation, Math.PI / 4, smallCurveRadius);
                 else if (draggedPieceType === 'train') drawTrain(buildCtx, mousePos.x, mousePos.y, draggedPieceRotation);
                 else if (draggedPieceType === 'train-car') drawTrainCar(buildCtx, mousePos.x, mousePos.y, draggedPieceRotation);
-                else if (draggedPieceType === 'decoupler') drawDecoupler(buildCtx, mousePos.x, mousePos.y, 0);
-                else if (draggedPieceType === 'direction-changer') drawDirectionChanger(buildCtx, mousePos.x, mousePos.y, 0);
+                else if (draggedPieceType === 'decoupler') drawDecoupler(buildCtx, mousePos.x, mousePos.y, 0, true, 0, 0);
+                else if (draggedPieceType === 'direction-changer') drawDirectionChanger(buildCtx, mousePos.x, mousePos.y, 0, true, 0, 0);
                 else if (draggedPieceType === 'pause') drawPause(buildCtx, mousePos.x, mousePos.y, 0);
                 else if (draggedPieceType === 'sensor') drawSensor(buildCtx, mousePos.x, mousePos.y, 0);
                 else if (draggedPieceType === 'traffic-light') drawTrafficLight(buildCtx, mousePos.x, mousePos.y, 0, 'stop');
                 else if (draggedPieceType === 'one-way') drawOneWay(buildCtx, mousePos.x, mousePos.y, 0, 0, true);
-                else if (draggedPieceType === 'track-direction') drawTrackDirection(buildCtx, mousePos.x, mousePos.y, 0, 0, true);
                 else if (draggedPieceType === 'counter') drawCounter(buildCtx, mousePos.x, mousePos.y, 0, 0);
                 else if (draggedPieceType === 'timer') drawTimer(buildCtx, mousePos.x, mousePos.y, 0, false, 0);
                 else if (draggedPieceType === 'signal-latch') drawSignalLatch(buildCtx, mousePos.x, mousePos.y, 0, false, 0, 0, false, [], [], 'sync');
@@ -1663,12 +1683,12 @@
 
             xPos = paletteLeftMargin + trackWidth * 0.8 / 2;
             const xPosDecoupler = xPos + 0;
-            drawDecoupler(ctx, xPosDecoupler, currentY);
+            drawDecoupler(ctx, xPosDecoupler, currentY, 0, true, 0, 0);
             paletteTemplates.push({ type: 'decoupler', x: xPosDecoupler, y: currentY, rotation: 0 });
 
             const xPosDirectionChanger = xPos + trackWidth;
-            drawDirectionChanger(ctx, xPosDirectionChanger, currentY);
-            paletteTemplates.push({ type: 'direction-changer', x: xPosDirectionChanger, y: currentY, rotation: 0 });
+            drawDirectionChanger(ctx, xPosDirectionChanger, currentY, 0, true);
+            paletteTemplates.push({ type: 'direction-changer', x: xPosDirectionChanger, y: currentY, rotation: 0, active: true });
 
             const xPosPause = xPos + trackWidth * 2;
             drawPause(ctx, xPosPause, currentY);
@@ -1685,14 +1705,10 @@
             paletteTemplates.push({ type: 'traffic-light', x: xPosTrafficLight, y: currentY, rotation: 0, state: 'stop' });
 
             const xPosOneWay = xPosTrafficLight + trackWidth;
-            drawOneWay(ctx, xPosOneWay, currentY, 0, 0, true);
-            paletteTemplates.push({ type: 'one-way', x: xPosOneWay, y: currentY, rotation: 0, direction: 0, active: true });
+            drawOneWay(ctx, xPosOneWay, currentY, 0, 0, true, 0);
+            paletteTemplates.push({ type: 'one-way', x: xPosOneWay, y: currentY, rotation: 0, direction: 0, active: true, mode: 0 });
 
-            const xPosTrackDirection = xPosOneWay + trackWidth;
-            drawTrackDirection(ctx, xPosTrackDirection, currentY, 0, 0, true);
-            paletteTemplates.push({ type: 'track-direction', x: xPosTrackDirection, y: currentY, rotation: 0, direction: 0, active: true });
-
-            const xPosCarSensor = xPosTrackDirection + trackWidth;
+            const xPosCarSensor = xPosOneWay + trackWidth;
             drawCarSensor(ctx, xPosCarSensor, currentY, 0, 1);
             paletteTemplates.push({ type: 'car-sensor', x: xPosCarSensor, y: currentY, rotation: 0, threshold: 1, linkedPieceIds: [] });
 
@@ -2191,13 +2207,68 @@
                 return true;
             }
 
-            if (piece.type === 'one-way') {
-                piece.active = !piece.active;
-                return true;
-            }
 
             if (piece.type === 'decoupler') {
-                piece.active = !piece.active;
+                if (isSignalTrigger) {
+                    if (piece.active === false) return false;
+
+                    const targetCar = trackPieces.find(p =>
+                        (p.type === 'train-car' || p.type === 'train') &&
+                        p.currentTrackPiece &&
+                        p.currentTrackPiece.id === piece.onTrackId &&
+                        Math.abs(p.positionOnTrack - piece.positionOnTrack) < 0.15
+                    );
+
+                    if (piece.mode === 1) { // Spawn
+                        if (!targetCar) {
+                            const newCar = {
+                                id: generateId(),
+                                type: 'train-car',
+                                x: piece.x,
+                                y: piece.y,
+                                rotation: piece.rotation,
+                                isOnTrack: true,
+                                currentTrackPiece: trackPieces.find(t => t.id === piece.onTrackId),
+                                positionOnTrack: piece.positionOnTrack,
+                                direction: 1,
+                                attachedCars: [],
+                                attachingTo: null,
+                                locomotive: null
+                            };
+                            trackPieces.push(newCar);
+                            saveState();
+                            draw();
+                        }
+                    } else if (piece.mode === 2) { // Delete
+                        const wagonToDelete = targetCar && targetCar.type === 'train-car' ? targetCar : null;
+                        if (wagonToDelete) {
+                            if (wagonToDelete.attachedTo) {
+                                const leader = wagonToDelete.attachedTo;
+                                if (leader.attachedCars) {
+                                    leader.attachedCars = leader.attachedCars.filter(c => c !== wagonToDelete);
+                                }
+                            }
+                            for (const other of trackPieces) {
+                                if (other.attachedTo === wagonToDelete) {
+                                    other.attachedTo = null;
+                                }
+                                if (other.isAttaching && other.attachingTo === wagonToDelete) {
+                                    cancelAttachmentChain(other);
+                                }
+                            }
+                            trackPieces = trackPieces.filter(p => p !== wagonToDelete);
+                            // Clear references from decouplers
+                            trackPieces.filter(p => p.type === 'decoupler').forEach(d => {
+                                if (d.occupyingCar === wagonToDelete) d.occupyingCar = null;
+                                if (d.reservedForTrain === wagonToDelete) d.reservedForTrain = null;
+                            });
+                            saveState();
+                            draw();
+                        }
+                    }
+                } else {
+                    piece.active = !piece.active;
+                }
                 return true;
             }
 
@@ -2211,10 +2282,11 @@
                 return true;
             }
 
-            if (piece.type === 'track-direction') {
+            if (piece.type === 'one-way') {
                 piece.active = !piece.active;
                 return true;
             }
+
             if (piece.type === 'counter') {
                 // Only handle linking UI when user clicks (not signal trigger)
                 if (!isSignalTrigger) {
@@ -2536,31 +2608,9 @@
                 case 'sensor':
                 case 'traffic-light':
                 case 'one-way':
-                case 'track-direction':
                     length = trackWidth * 0.8;
                     width = trackWidth * 0.8;
                     break;
-            }
-
-            if (length !== undefined && width !== undefined) {
-                let startX = -length / 2;
-                let endX = length / 2;
-                let topY = -width / 2;
-                let bottomY = width / 2;
-
-                if (piece.type === 'tunnel') {
-                    const mouthRadius = trackWidth / 2 + 5;
-                    const borderThickness = 6;
-                    const totalRadius = mouthRadius + borderThickness / 2;
-                    endX += totalRadius;
-                    topY = -totalRadius;
-                    bottomY = totalRadius;
-                }
-
-                localPoints.push({ x: startX, y: -width / 2 });
-                localPoints.push({ x: endX, y: topY });
-                localPoints.push({ x: endX, y: bottomY });
-                localPoints.push({ x: startX, y: width / 2 });
             }
 
             if (localPoints.length === 0) {
@@ -2594,6 +2644,9 @@
                 if (isMouseOnPiece(template, pos.x, pos.y)) {
                     saveState();
                     isDraggingFromPalette = true;
+                    isDraggingPiece = false;
+                    isMarqueeSelecting = false;
+                    mousePos = pos;
                     draggedPieceType = template.type;
                     draggedPieceRotation = template.rotation;
                     document.body.style.cursor = 'grabbing';
@@ -2617,6 +2670,12 @@
                     break;
                 }
             }
+
+            // Global mouse state reset on new mousedown
+            isDraggingPiece = false;
+            isDraggingFromPalette = false;
+            isMarqueeSelecting = false;
+            mousePos = pos;
 
             if (clickedPiece) {
                 saveState();
@@ -2748,7 +2807,7 @@
         window.addEventListener('mouseup', (e) => {
             if (isDraggingFromPalette) {
                 if (e.target === buildCanvas) {
-                    if (draggedPieceType === 'decoupler' || draggedPieceType === 'direction-changer' || draggedPieceType === 'pause' || draggedPieceType === 'sensor' || draggedPieceType === 'traffic-light' || draggedPieceType === 'one-way' || draggedPieceType === 'track-direction' || draggedPieceType === 'car-sensor') {
+                    if (draggedPieceType === 'decoupler' || draggedPieceType === 'direction-changer' || draggedPieceType === 'pause' || draggedPieceType === 'sensor' || draggedPieceType === 'traffic-light' || draggedPieceType === 'one-way' || draggedPieceType === 'car-sensor') {
                         let targetTrack = null;
                         for (const piece of trackPieces) {
                             if (piece.id && isTrackPiece(piece) && isMouseOnPiece(piece, mousePos.x, mousePos.y)) {
@@ -2841,20 +2900,6 @@
                                 };
                                 trackPieces.push(newOneWay);
                                 selectedPieces = [newOneWay];
-                            } else if (draggedPieceType === 'track-direction') {
-                                const newTrackDirection = {
-                                    id: generateId(),
-                                    type: 'track-direction',
-                                    x: newPos.x,
-                                    y: newPos.y,
-                                    rotation: newPos.rotation,
-                                    onTrackId: targetTrack.id,
-                                    positionOnTrack: positionOnTrack,
-                                    direction: 0,
-                                    active: true
-                                };
-                                trackPieces.push(newTrackDirection);
-                                selectedPieces = [newTrackDirection];
                             } else if (draggedPieceType === 'car-sensor') {
                                 const newCarSensor = {
                                     id: generateId(),
@@ -2880,7 +2925,7 @@
                             newPiece.path = [];
                         }
                         if (newPiece.type === 'train') {
-                            newPiece.speed = 5;
+                            newPiece.speed = 3;
                             newPiece.direction = 1;
                             newPiece.facingRotation = 0;
                             newPiece.pauseTimer = 0;
@@ -3002,7 +3047,7 @@
                             if (vehicle.type === 'train-car') {
 
                                 let droppedOnDecoupler = null;
-                                for (const d of trackPieces.filter(p => p.type === 'decoupler' && p.onTrackId)) {
+                                for (const d of trackPieces.filter(p => p.type === 'decoupler' && p.onTrackId && p.active !== false && (p.mode || 0) !== 1)) {
                                     if (isMouseOnPiece(d, vehicle.x, vehicle.y) && !d.occupyingCar && !d.reservedForTrain) {
                                         droppedOnDecoupler = d;
 
@@ -3087,10 +3132,7 @@
                     });
                     selectedPieces = selectedPieces.filter(piece => trackPieces.includes(piece));
                 }
-                isDraggingPiece = false;
-                hasExceededDragThreshold = false;
             } else if (isMarqueeSelecting) {
-                isMarqueeSelecting = false;
                 const marqueeRect = {
                     x1: Math.min(marqueeStart.x, mousePos.x),
                     y1: Math.min(marqueeStart.y, mousePos.y),
@@ -3114,6 +3156,13 @@
                     selectedPieces = newlySelected;
                 }
             }
+
+            // Final safety reset of all mouse-related flags
+            isDraggingPiece = false;
+            isDraggingFromPalette = false;
+            isMarqueeSelecting = false;
+            hasExceededDragThreshold = false;
+
             updateAdjustableStraights();
             document.body.style.cursor = 'default';
             draw();
@@ -3148,6 +3197,14 @@
                 p.attachedCars = [];
                 allFollowers.forEach(car => {
                     if (car.attachedCars) car.attachedCars = [];
+                });
+
+                // Clear decoupler references to this piece
+                trackPieces.forEach(dp => {
+                    if (dp.type === 'decoupler') {
+                        if (dp.occupyingCar === p) dp.occupyingCar = null;
+                        if (dp.reservedForTrain === p) dp.reservedForTrain = null;
+                    }
                 });
             });
 
@@ -3198,17 +3255,13 @@
                 case 'ArrowRight':
                 case 'ArrowLeft':
                     if (selectedPieces.length > 0) {
-                        const hasOneWaySelected = selectedPieces.length === 1 && selectedPieces[0].type === 'one-way';
-                        const hasTrackDirectionSelected = selectedPieces.length === 1 && selectedPieces[0].type === 'track-direction';
-                        if (hasOneWaySelected) {
-                            // Change one-way direction
-                            const oneWay = selectedPieces[0];
-                            oneWay.direction = (e.key === 'ArrowRight' ? 0 : Math.PI);
-                            changed = true;
-                        } else if (hasTrackDirectionSelected) {
-                            // Change track-direction direction
-                            const trackDir = selectedPieces[0];
-                            trackDir.direction = (e.key === 'ArrowRight' ? 0 : Math.PI);
+                        const hasDirectionController = selectedPieces.length === 1 && selectedPieces[0].type === 'direction-changer';
+                        const hasOneWay = selectedPieces.length === 1 && selectedPieces[0].type === 'one-way';
+                        if (hasDirectionController) {
+                            changed = false;
+                        } else if (hasOneWay) {
+                            const piece = selectedPieces[0];
+                            piece.direction = (e.key === 'ArrowRight' ? 0 : Math.PI);
                             changed = true;
                         } else if (hasTrainSelected) {
                             selectedPieces.forEach(p => {
@@ -3250,10 +3303,21 @@
                             counter.maxValue = Math.min(9, (counter.maxValue || 9) + 1);
                         }
                         changed = true;
-                    } else if (selectedPieces.length === 1 && selectedPieces[0].type === 'car-sensor') {
-                        const sensor = selectedPieces[0];
-                        sensor.threshold = Math.min(9, (sensor.threshold || 1) + 1);
+                    } else if (selectedPieces.length === 1 && selectedPieces[0].type === 'one-way') {
+                        const piece = selectedPieces[0];
+                        piece.mode = ((piece.mode || 0) + 1) % 2; // 0 for local, 1 for track-wide
                         changed = true;
+                    } else if (selectedPieces.length === 1 && selectedPieces[0].type === 'decoupler') {
+                        const piece = selectedPieces[0];
+                        piece.mode = ((piece.mode || 0) + 1) % 3;
+                        changed = true;
+                    } else if (selectedPieces.length === 1 && selectedPieces[0].type === 'car-sensor') {
+                        const piece = selectedPieces[0];
+                        piece.threshold = Math.min(9, (piece.threshold || 1) + 1);
+                        changed = true;
+                    } else if (selectedPieces.length === 1 && selectedPieces[0].type === 'direction-changer') {
+                        // No mode toggle
+                        changed = false;
                     }
                     break;
                 case 'ArrowDown':
@@ -3275,15 +3339,27 @@
                                 counter.value = counter.maxValue;
                             }
                         }
+                        changed = true;
                     } else if (selectedPieces.length === 1 && selectedPieces[0].type === 'signal-latch') {
                         const latch = selectedPieces[0];
                         latch.mode = 'all';
                         updateSignalLatchConnections(latch);
                         changed = true;
-                    } else if (selectedPieces.length === 1 && selectedPieces[0].type === 'car-sensor') {
-                        const sensor = selectedPieces[0];
-                        sensor.threshold = Math.max(0, (sensor.threshold || 1) - 1);
+                    } else if (selectedPieces.length === 1 && selectedPieces[0].type === 'one-way') {
+                        const piece = selectedPieces[0];
+                        piece.mode = ((piece.mode || 0) + 1) % 2; // 0 for local, 1 for track-wide
                         changed = true;
+                    } else if (selectedPieces.length === 1 && selectedPieces[0].type === 'decoupler') {
+                        const piece = selectedPieces[0];
+                        piece.mode = ((piece.mode || 0) + 2) % 3;
+                        changed = true;
+                    } else if (selectedPieces.length === 1 && selectedPieces[0].type === 'car-sensor') {
+                        const piece = selectedPieces[0];
+                        piece.threshold = Math.max(1, (piece.threshold || 1) - 1);
+                        changed = true;
+                    } else if (selectedPieces.length === 1 && selectedPieces[0].type === 'direction-changer') {
+                        // No mode toggle
+                        changed = false;
                     }
                     break;
                 case 'Enter':
@@ -3378,6 +3454,8 @@
             }
 
             if (changed) {
+                saveState();
+                draw();
                 e.preventDefault();
             }
         });
@@ -3819,9 +3897,9 @@
 
                     // console.log('Forward tracks found: ' + forwardTracks.length);
 
-                    // Filter out tracks blocked by track-direction pieces
+                    // Filter out tracks blocked by direction-changer pieces in track-direction mode
                     const allowedTracks = forwardTracks.filter(path => {
-                        const trackDirections = trackPieces.filter(p => p.type === 'track-direction' && p.onTrackId === path.track.id && p.active !== false);
+                        const trackDirections = trackPieces.filter(p => p.type === 'one-way' && p.mode === 1 && p.onTrackId === path.track.id && p.active !== false);
                         if (trackDirections.length === 0) return true;
 
                         for (const td of trackDirections) {
@@ -3844,10 +3922,11 @@
                         console.log('All paths blocked or backward!');
                     }
                 } else if (possibleNextTracks.length === 1) {
-                    // Check if this single track is blocked by track-direction
+                    // Check if this single track is blocked by direction-changer and is in (track-direction mode)
                     const path = possibleNextTracks[0];
                     const trackDirections = trackPieces.filter(p =>
-                        p.type === 'track-direction' &&
+                        p.type === 'one-way' &&
+                        p.mode === 1 &&
                         p.onTrackId === path.track.id &&
                         p.active !== false
                     );
@@ -4058,12 +4137,12 @@
                 }
 
                 if (piece.type === 'timer' && piece.active) {
-                    const now = Date.now();
-                    if (!piece.lastTick) piece.lastTick = now;
+                    const nowTime = Date.now();
+                    if (!piece.lastTick) piece.lastTick = nowTime;
 
-                    const elapsed = now - piece.lastTick;
+                    const elapsed = nowTime - piece.lastTick;
                     if (elapsed >= 1000) {
-                        piece.lastTick = now;
+                        piece.lastTick = nowTime;
                         // Trigger output
                         if (piece.linkedPieceIds && piece.linkedPieceIds.length > 0) {
                             piece.linkedPieceIds.forEach(targetId => {
@@ -4072,8 +4151,9 @@
                             });
                         }
                     }
-                    piece.timerProgress = (now - piece.lastTick) / 1000;
+                    piece.timerProgress = (nowTime - piece.lastTick) / 1000;
                 }
+
             }
 
             const trains = trackPieces.filter(p => p.type === 'train');
@@ -4099,7 +4179,7 @@
                         const decouplerPos = getPositionOnTrack({ currentTrackPiece: parentTrack, positionOnTrack: d.positionOnTrack });
                         if (Math.hypot(decouplerPos.x - train.x, decouplerPos.y - train.y) < ATTACH_DISTANCE_THRESHOLD) {
                             isLocoOnADecoupler = true;
-                            if (train.canTriggerDecouple && !d.reservedForTrain && !d.occupyingCar && numberOfCars > 0 && d.active !== false) {
+                            if (train.canTriggerDecouple && !d.reservedForTrain && !d.occupyingCar && numberOfCars > 0 && d.active !== false && (d.mode || 0) !== 1) {
                                 d.reservedForTrain = train; // Reserve for the entire train
                                 train.canTriggerDecouple = false;
                             }
@@ -4200,11 +4280,13 @@
                     train.canTriggerSensor = true;
                 }
 
-                // One-way piece logic
                 let isLocoOnOneWay = false;
                 const allOneWaysOnTrack = trackPieces.filter(p => p.type === 'one-way' && p.onTrackId);
 
                 for (const ow of allOneWaysOnTrack) {
+                    // Only process local one-way (mode 0) here. 
+                    // Mode 1 is handled in track transition logic (blocking entry).
+                    if (ow.mode === 1) continue;
                     const parentTrack = trackPieces.find(t => t.id === ow.onTrackId);
                     if (parentTrack && train.currentTrackPiece && parentTrack.id === train.currentTrackPiece.id) {
                         const oneWayPos = getPositionOnTrack({ currentTrackPiece: parentTrack, positionOnTrack: ow.positionOnTrack });
@@ -4278,7 +4360,9 @@
                     const decoupler = trackPieces.find(d =>
                         d.type === 'decoupler' &&
                         d.reservedForTrain === locomotive &&
-                        d.onTrackId === car.currentTrackPiece.id
+                        d.onTrackId === car.currentTrackPiece.id &&
+                        (d.mode || 0) !== 1 &&
+                        d.active !== false
                     );
 
                     if (decoupler) {
@@ -4394,6 +4478,9 @@
                 if (newPiece.type === 'decoupler') {
                     newPiece.reservedForTrain = null;
                     newPiece.occupyingCar = null;
+                    newPiece.mode = newPiece.mode || 0;
+                    newPiece.actionTimer = 0;
+                    newPiece.actionProgress = 0;
                 }
                 if (newPiece.type === 'pause') {
                     newPiece.isOccupied = false;
@@ -4401,6 +4488,15 @@
                 if (newPiece.type === 'counter') {
                     newPiece.value = 0;
                     newPiece.linkedPieceIds = [];
+                }
+                if (newPiece.type === 'track-direction') {
+                    newPiece.type = 'direction-changer';
+                    newPiece.mode = 1;
+                    if (newPiece.direction === undefined) newPiece.direction = 0;
+                }
+                if (newPiece.type === 'direction-changer') {
+                    if (newPiece.mode === undefined) newPiece.mode = 0;
+                    if (newPiece.direction === undefined) newPiece.direction = 0;
                 }
 
                 return newPiece;
@@ -4500,18 +4596,24 @@
                         p.reservedForTrain = null;
                         p.occupyingCar = null;
                         if (p.active === undefined) p.active = true;
+                        if (p.mode === undefined) p.mode = 0;
+                        p.actionTimer = 0;
+                        p.actionProgress = 0;
                     }
                     if (p.type === 'pause') {
                         p.isOccupied = false;
                         if (p.active === undefined) p.active = true;
                     }
+                    if (p.type === 'track-direction') {
+                        p.type = 'direction-changer';
+                        p.mode = 1;
+                    }
                     if (p.type === 'direction-changer') {
                         if (p.active === undefined) p.active = true;
+                        if (p.mode === undefined) p.mode = 0;
+                        if (p.direction === undefined) p.direction = 0;
                     }
                     if (p.type === 'one-way') {
-                        if (p.active === undefined) p.active = true;
-                    }
-                    if (p.type === 'track-direction') {
                         if (p.active === undefined) p.active = true;
                     }
                     if (p.type === 'traffic-light' && !p.state) {
