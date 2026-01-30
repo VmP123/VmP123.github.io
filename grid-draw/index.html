@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="fi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruudukkopiirto</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div id="app-container">
+        <aside id="sidebar">
+            <h1>Ruudukkopiirto</h1>
+            <div id="controls">
+                <!-- Työkalut ensin - tärkein toiminto -->
+                <fieldset class="primary-section">
+                    <legend>Työkalu</legend>
+                    <div id="tool-selection" class="tool-grid tool-grid-4">
+                        <label class="tool-btn" title="Valinta (Marquee)">
+                            <input type="radio" id="tool-select" name="tool" value="select">
+                            <i class="fa-solid fa-arrow-pointer"></i>
+                        </label>
+                        <div class="tool-group-container" id="group-free">
+                            <label class="tool-btn group-btn" title="Vapaa viiva">
+                                <input type="radio" id="tool-free" name="tool" value="free" checked>
+                                <i class="fa-solid fa-pen"></i>
+                            </label>
+                            <span class="group-indicator"></span>
+                            <div class="sub-tool-menu">
+                                <div class="sub-tool-option active" data-value="free" title="Vapaa viiva"
+                                    data-icon="fa-solid fa-pen" data-type="solid">
+                                    <i class="fa-solid fa-pen"></i>
+                                </div>
+                                <div class="sub-tool-option" data-value="vp-line" title="VP-viiva"
+                                    data-icon="fa-solid fa-ruler-combined" data-type="solid">
+                                    <i class="fa-solid fa-ruler-combined"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tool-group-container" id="group-rect">
+                            <label class="tool-btn group-btn" title="Suorakulmio">
+                                <input type="radio" id="tool-rect" name="tool" value="rect">
+                                <i class="fa-regular fa-square"></i>
+                            </label>
+                            <span class="group-indicator"></span>
+                            <div class="sub-tool-menu">
+                                <div class="sub-tool-option active" data-value="rect" title="Suorakulmio"
+                                    data-icon="fa-regular fa-square" data-type="regular">
+                                    <i class="fa-regular fa-square"></i>
+                                </div>
+                                <div class="sub-tool-option" data-value="vp-rect" title="Pakopisteneliö">
+                                    <svg viewBox="0 0 20 20" fill="transparent" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M4 7L16 4V16L4 13Z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <label class="tool-btn" title="Yhdensuuntainen">
+                            <input type="radio" id="tool-parallel" name="tool" value="parallel">
+                            <i class="fa-solid fa-grip-lines"></i>
+                        </label>
+                        <label class="tool-btn" title="Aseta pakopisteet">
+                            <input type="radio" id="tool-vp-tool" name="tool" value="vp-tool">
+                            <i class="fa-solid fa-crosshairs"></i>
+                        </label>
+                        <label class="tool-btn" title="Maalikannu">
+                            <input type="radio" id="tool-bucket" name="tool" value="bucket">
+                            <i class="fa-solid fa-fill-drip"></i>
+                        </label>
+                        <label class="tool-btn" title="Pipetti">
+                            <input type="radio" id="tool-pipette" name="tool" value="pipette">
+                            <i class="fa-solid fa-eye-dropper"></i>
+                        </label>
+                        <div class="tool-group-container" id="group-circle">
+                            <label class="tool-btn group-btn" title="Ympyrä">
+                                <input type="radio" id="tool-circle" name="tool" value="circle">
+                                <i class="fa-regular fa-circle"></i>
+                            </label>
+                            <span class="group-indicator"></span>
+                            <div class="sub-tool-menu">
+                                <div class="sub-tool-option active" data-value="circle" title="Ympyrä"
+                                    data-icon="fa-regular fa-circle" data-type="regular">
+                                    <i class="fa-regular fa-circle"></i>
+                                </div>
+                                <div class="sub-tool-option" data-value="arc" title="Ympyräkaari"
+                                    data-icon="fa-solid fa-circle-notch" data-type="solid">
+                                    <i class="fa-solid fa-circle-notch"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tool-group-container" id="group-iso">
+                            <label class="tool-btn group-btn" title="Isometrinen ympyrä">
+                                <input type="radio" id="tool-iso-circle" name="tool" value="iso-circle">
+                                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                                    <ellipse cx="10" cy="10" rx="8" ry="4.5" transform="rotate(-30 10 10)" />
+                                </svg>
+                            </label>
+                            <span class="group-indicator"></span>
+                            <div class="sub-tool-menu">
+                                <div class="sub-tool-option active" data-value="iso-circle" title="Isometrinen ympyrä">
+                                    <svg viewBox="0 0 20 20" fill="transparent" stroke="currentColor" stroke-width="2">
+                                        <ellipse cx="10" cy="10" rx="8" ry="4.5" transform="rotate(-30 10 10)" />
+                                    </svg>
+                                </div>
+                                <div class="sub-tool-option" data-value="iso-arc" title="Isometrinen kaari">
+                                    <svg viewBox="0 0 20 20" fill="transparent" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round">
+                                        <path d="M4 14 A 8 4.5 -30 0 1 14 6" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <label class="tool-btn" title="Pyyhekumi">
+                            <input type="radio" id="tool-eraser" name="tool" value="eraser">
+                            <i class="fa-solid fa-eraser"></i>
+                        </label>
+                        <label class="tool-btn" title="Trimmaa (Scissors)">
+                            <input type="radio" id="tool-trim" name="tool" value="trim">
+                            <i class="fa-solid fa-scissors"></i>
+                        </label>
+                        <label class="tool-btn" title="Pilkko (Split)">
+                            <input type="radio" id="tool-split" name="tool" value="split">
+                            <i class="fa-solid fa-divide"></i>
+                        </label>
+                    </div>
+
+                    <!-- Väri ja toiminnot työkalujen kanssa -->
+                    <div class="tool-options">
+                        <input type="color" id="color-picker" value="#000000">
+                        <button id="undo-button" class="icon-btn" title="Peru (Ctrl+Z)">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </button>
+                        <button id="redo-button" class="icon-btn" title="Tee uudelleen (Ctrl+Y)">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+                </fieldset>
+
+                <!-- Piirtoasetukset -->
+                <fieldset>
+                    <legend>Piirtoasetukset</legend>
+
+                    <div class="setting-group">
+                        <div class="setting-group-title">Tarttuminen</div>
+                        <div class="setting-item">
+                            <label><input type="checkbox" id="snap-toggle" checked> Ruudukkoon</label>
+                        </div>
+                        <div class="setting-item">
+                            <label><input type="checkbox" id="snap-endpoint-toggle" checked> Viivan päähän</label>
+                        </div>
+                        <div class="setting-item">
+                            <label><input type="checkbox" id="snap-line-intersection-toggle" checked>
+                                Risteykseen</label>
+                        </div>
+                        <div class="setting-item">
+                            <label><input type="checkbox" id="snap-grid-line-intersection-toggle">
+                                Ruudukko-risteykseen</label>
+                        </div>
+                        <div class="setting-item">
+                            <label><input type="checkbox" id="snap-intersection-toggle"> Katkaise
+                                risteyksessä</label>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <div class="setting-group-title">Viivan ominaisuudet</div>
+                        <div class="slider-group">
+                            <div class="slider-row">
+                                <label for="line-width-slider">Paksuus</label>
+                                <span id="line-width-value" class="value-display">2px</span>
+                            </div>
+                            <input type="range" id="line-width-slider" min="1" max="15" value="2">
+                        </div>
+                    </div>
+                    <div class="setting-group" id="isometric-planes-group" style="display: none;">
+                        <div class="setting-group-title">Iso-taso (T)</div>
+                        <div class="iso-plane-selection">
+                            <label class="plane-btn" title="Top">
+                                <input type="radio" name="iso-plane" value="top" checked>
+                                <span>Top</span>
+                            </label>
+                            <label class="plane-btn" title="Left">
+                                <input type="radio" name="iso-plane" value="left">
+                                <span>Left</span>
+                            </label>
+                            <label class="plane-btn" title="Right">
+                                <input type="radio" name="iso-plane" value="right">
+                                <span>Right</span>
+                            </label>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- Näkymä -->
+                <fieldset>
+                    <legend>Näkymä</legend>
+                    <div class="view-controls">
+                        <div class="view-control-item">
+                            <div class="control-label">Ruudukko</div>
+                            <div class="size-controls">
+                                <button id="grid-halve-button" class="grid-size-btn" title="Pienennä">
+                                    <i class="fa-solid fa-minus"></i>
+                                </button>
+                                <span id="2d-grid-density-value" class="grid-size-display">20px</span>
+                                <button id="grid-double-button" class="grid-size-btn" title="Suurenna">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="view-control-item">
+                            <div class="control-label">Zoomaus</div>
+                            <div class="size-controls">
+                                <button id="zoom-out-button" class="grid-size-btn" title="Loitonna">
+                                    <i class="fa-solid fa-magnifying-glass-minus"></i>
+                                </button>
+                                <span id="zoom-value" class="grid-size-display">100%</span>
+                                <button id="zoom-in-button" class="grid-size-btn" title="Lähennä">
+                                    <i class="fa-solid fa-magnifying-glass-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="view-control-item">
+                            <div class="control-label">Ruudukkotyyppi</div>
+                            <select id="grid-type-select" class="grid-type-select">
+                                <option value="2d">2D (Neliö)</option>
+                                <option value="isometric">Isometrinen</option>
+                            </select>
+                        </div>
+
+                        <div class="view-toggles">
+                            <div class="setting-item">
+                                <label><input type="checkbox" id="2d-grid-toggle" checked> Näytä ruudukko</label>
+                            </div>
+                            <div class="setting-item">
+                                <label><input type="checkbox" id="grid-on-top-toggle"> Ruudukko päällimmäisenä</label>
+                            </div>
+                            <div class="setting-item">
+                                <label><input type="checkbox" id="show-measurements-toggle" checked> Näytä mitat
+                                    piirtäessä</label>
+                            </div>
+                            <div class="setting-item">
+                                <label><input type="checkbox" id="show-vps-toggle" checked> Näytä pakopisteet</label>
+                            </div>
+                            <div class="setting-item">
+                                <label><input type="checkbox" id="show-points-toggle"> Näytä pisteet</label>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- Layerit & Tiedostot -->
+                <fieldset>
+                    <legend>Layerit</legend>
+                    <div id="layers-list" class="layers-container">
+                        <!-- Layers will be dynamically added here -->
+                    </div>
+                    <div class="layer-actions" style="display: flex; gap: 6px; margin-top: 5px;">
+                        <button id="add-layer-button" class="action-btn" style="flex: 1;">
+                            <i class="fa-solid fa-plus"></i> Lisää
+                        </button>
+                        <button id="merge-layers-button" class="action-btn" style="flex: 1; background-color: #5e6c84;">
+                            <i class="fa-solid fa-layer-group"></i> Yhdistä
+                        </button>
+                    </div>
+                </fieldset>
+
+                <fieldset>
+                    <legend>Tiedosto</legend>
+                    <div class="file-actions">
+                        <div class="file-actions-row">
+                            <button id="save-json-button" class="file-btn" title="Tallenna projekti">
+                                <i class="fa-solid fa-floppy-disk"></i>
+                                <span>Tallenna</span>
+                            </button>
+                            <button id="load-json-button" class="file-btn" title="Lataa projekti">
+                                <i class="fa-solid fa-folder-open"></i>
+                                <span>Lataa</span>
+                            </button>
+                        </div>
+                        <div class="file-actions-row">
+                            <button id="export-image-button" class="file-btn action-btn" title="Vie kuvaksi">
+                                <i class="fa-solid fa-image"></i>
+                                <span>Vie kuva</span>
+                            </button>
+                            <button id="clear-canvas-button" class="file-btn danger-btn" title="Tyhjennä kaikki">
+                                <i class="fa-solid fa-trash-can"></i>
+                                <span>Tyhjennä</span>
+                            </button>
+                        </div>
+                    </div>
+                    <input type="file" id="json-file-input" accept=".json" style="display: none;">
+                </fieldset>
+            </div>
+        </aside>
+        <main id="canvas-container">
+            <canvas id="drawing-canvas"></canvas>
+        </main>
+    </div>
+
+    <!-- Custom Dialog Components -->
+    <div id="dialog-overlay" class="dialog-overlay" style="display: none;"></div>
+
+    <!-- Alert Dialog -->
+    <div id="alert-dialog" class="dialog" style="display: none;">
+        <div class="dialog-content">
+            <div class="dialog-header">
+                <h2 id="alert-title">Ilmoitus</h2>
+                <button class="dialog-close-btn" onclick="closeAlertDialog()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="dialog-body">
+                <p id="alert-message"></p>
+            </div>
+            <div class="dialog-footer">
+                <button id="alert-ok-btn" class="dialog-btn dialog-btn-primary" onclick="closeAlertDialog()">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Dialog -->
+    <div id="confirm-dialog" class="dialog" style="display: none;">
+        <div class="dialog-content">
+            <div class="dialog-header">
+                <h2 id="confirm-title">Vahvistus</h2>
+            </div>
+            <div class="dialog-body">
+                <p id="confirm-message"></p>
+            </div>
+            <div class="dialog-footer">
+                <button id="confirm-cancel-btn" class="dialog-btn dialog-btn-secondary" onclick="closeConfirmDialog()">
+                    Peruuta
+                </button>
+                <button id="confirm-ok-btn" class="dialog-btn dialog-btn-danger">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prompt Dialog -->
+    <div id="prompt-dialog" class="dialog" style="display: none;">
+        <div class="dialog-content">
+            <div class="dialog-header">
+                <h2 id="prompt-title">Syötä arvo</h2>
+            </div>
+            <div class="dialog-body">
+                <p id="prompt-message"></p>
+                <input type="number" id="prompt-input" class="dialog-input"
+                    style="width: 100%; box-sizing: border-box; padding: 8px; margin-top: 10px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div class="dialog-footer">
+                <button id="prompt-cancel-btn" class="dialog-btn dialog-btn-secondary" onclick="closePromptDialog()">
+                    Peruuta
+                </button>
+                <button id="prompt-ok-btn" class="dialog-btn dialog-btn-primary">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Split Dialog -->
+    <div id="split-dialog" class="dialog" style="display: none;">
+        <div class="dialog-content">
+            <div class="dialog-header">
+                <h2>Pilkko / Lisää pisteet</h2>
+            </div>
+            <div class="dialog-body">
+                <div class="setting-item">
+                    <label>Moneen osaan?</label>
+                    <input type="number" id="split-num-input" value="2" min="2"
+                        style="width: 100%; box-sizing: border-box; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div class="setting-item" style="margin-top: 15px;">
+                    <label style="display: block; margin-bottom: 5px;"><input type="radio" name="split-dialog-mode"
+                            value="segments" checked> Pilkko oikeiksi osiksi</label>
+                    <label style="display: block;"><input type="radio" name="split-dialog-mode" value="points"> Lisää
+                        vain merkkipisteet</label>
+                </div>
+                <div id="split-clear-container" style="margin-top: 15px; display: none;">
+                    <button id="split-clear-btn" class="dialog-btn dialog-btn-danger" style="width: 100%;">Poista
+                        apupisteet</button>
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <button id="split-cancel-btn" class="dialog-btn dialog-btn-secondary">Peruuta</button>
+                <button id="split-ok-btn" class="dialog-btn dialog-btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+
+</html>

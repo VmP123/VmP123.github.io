@@ -1,0 +1,82 @@
+{
+  "name": "Oma rata",
+  "startLine": {
+    "x": 243,
+    "y": 85,
+    "angle": 0
+  },
+  "pieces": [
+    {
+      "type": "straight",
+      "x": 403,
+      "y": 85,
+      "angle": 0,
+      "leftWall": true,
+      "rightWall": true
+    },
+    {
+      "type": "curve",
+      "x": 483,
+      "y": 165,
+      "angle": 270,
+      "leftWall": true,
+      "rightWall": true
+    },
+    {
+      "type": "curve",
+      "x": 483,
+      "y": 165,
+      "angle": 0,
+      "leftWall": true,
+      "rightWall": true
+    },
+    {
+      "type": "curve",
+      "x": 483,
+      "y": 325,
+      "angle": 180,
+      "leftWall": true,
+      "rightWall": true
+    },
+    {
+      "type": "curve",
+      "x": 163,
+      "y": 165,
+      "angle": 180,
+      "leftWall": true,
+      "rightWall": true
+    },
+    {
+      "type": "curve",
+      "x": 163,
+      "y": 165,
+      "angle": 90,
+      "leftWall": true,
+      "rightWall": true
+    },
+    {
+      "type": "curve",
+      "x": 163,
+      "y": 325,
+      "angle": 270,
+      "leftWall": true,
+      "rightWall": true
+    },
+    {
+      "type": "curve",
+      "x": 323,
+      "y": 325,
+      "angle": 90,
+      "leftWall": true,
+      "rightWall": true
+    },
+    {
+      "type": "curve",
+      "x": 323,
+      "y": 325,
+      "angle": 0,
+      "leftWall": true,
+      "rightWall": true
+    }
+  ]
+}

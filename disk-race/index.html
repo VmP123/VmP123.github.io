@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disk Race - Kiekkokilpailu</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🏁 Disk Race</h1>
+            <div class="info-panel">
+                <div class="lap-counter">
+                    <span id="lap-counter">Kierros 0 / 3</span>
+                </div>
+                <div class="player-indicator">
+                    <span id="player-indicator">Pelaaja 1</span>
+                </div>
+                <div class="turns-counter">
+                    <span id="turns-counter">Vuoroja: 0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="game-canvas"></canvas>
+
+            <div id="power-meter" class="power-meter hidden">
+                <div class="power-meter-label">Voima</div>
+                <div class="power-meter-bar">
+                    <div id="power-meter-fill" class="power-meter-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="launch-btn" class="launch-button">
+                <span class="button-text">Pidä pohjassa (tai välilyönti)</span>
+                <span class="button-icon">🚀</span>
+            </button>
+            <button id="reset-btn" class="reset-button">Uusi peli</button>
+            <a href="editor.html" class="reset-button"
+                style="text-decoration: none; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); display: flex; align-items: center; justify-content: center;">Rataeditori</a>
+        </div>
+
+        <div id="victory-screen" class="victory-screen hidden">
+            <div class="victory-content">
+                <h2>🏆 Onneksi olkoon!</h2>
+                <p>Suoritit radan!</p>
+                <button id="play-again-btn" class="play-again-button">Pelaa uudelleen</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>

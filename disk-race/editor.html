@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="fi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disk Race - Rataeditori</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .game-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .editor-container {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        .toolbar {
+            width: 250px;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
+        .canvas-area {
+            flex: 1;
+            position: relative;
+            background: #f0f4f8;
+            border-radius: 24px;
+            border: 5px solid #1e3c72;
+            overflow: auto;
+            cursor: crosshair;
+            box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .tool-group {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .tool-group h3 {
+            font-size: 0.9em;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .piece-library {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .draggable-piece {
+            cursor: grab;
+            transition: all 0.2s;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+        }
+
+        .draggable-piece:hover {
+            transform: translateY(-2px);
+            border-color: #6366f1;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+        }
+
+        .draggable-piece:active {
+            cursor: grabbing;
+        }
+
+        .piece-label {
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #475569;
+        }
+
+        .canvas-area {
+            position: relative;
+            background: #f0f4f8;
+            border-radius: 24px;
+            border: 5px solid #1e3c72;
+            overflow: scroll;
+            /* Pakotetaan skrollauspalkit */
+            cursor: crosshair;
+            box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.1);
+            height: 85vh;
+            /* Kiinteä korkeus jotta sivu ei veny liikaa */
+        }
+
+        #editor-canvas {
+            display: block;
+            background: #fff;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .btn-tool {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e7ff;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .keyboard-shortcuts {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: auto;
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🛠️ Rataeditori</h1>
+            <div class="info-panel">
+                <button id="back-to-game" class="value"
+                    style="text-decoration: none; cursor: pointer; background: none; border: none; font-size: inherit; font-family: inherit; color: inherit;">⬅️
+                    Takaisin peliin</button>
+            </div>
+        </div>
+
+        <div class="editor-container">
+            <div class="toolbar">
+                <div class="tool-group">
+                    <h3>Valitse ja raahaa</h3>
+                    <div class="piece-library">
+                        <canvas id="library-canvas" width="210" height="600" class="piece-preview-canvas"
+                            style="cursor: grab; border: 2px solid #e2e8f0; border-radius: 12px; background: #f8fafc;"></canvas>
+                    </div>
+                </div>
+
+                <div class="tool-group">
+                    <h3>Muokkaa</h3>
+                    <button id="rotate-piece" class="btn-tool">🔄 Käännä (R)</button>
+                    <button id="undo" class="btn-tool">↩️ Kumoa (Ctrl+Z)</button>
+                    <button id="clear-all" class="btn-tool" style="color: #ef4444;">🗑️ Tyhjennä</button>
+                    <button id="toggle-walls" class="btn-tool">🧱 Laitatyökalu</button>
+                </div>
+
+                <div class="tool-group">
+                    <h3>Tiedosto</h3>
+                    <button id="save-json" class="btn-tool" style="background: #10b981; color: white;">💾 Tallenna
+                        JSON</button>
+                    <button id="load-json" class="btn-tool" style="background: #3b82f6; color: white;">📂 Lataa
+                        JSON</button>
+                    <input type="file" id="file-input" accept=".json" style="display: none;">
+                </div>
+
+                <div class="keyboard-shortcuts">
+                    <p><b>Nuolinäppäimet</b>: Siirrä viimeistä palaa</p>
+                    <p><b>R</b>: Käännä 90°</p>
+                    <p><b>Del</b>: Poista viimeisin</p>
+                </div>
+            </div>
+
+            <div class="canvas-area">
+                <canvas id="editor-canvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/editor/editor.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,130 @@
+{
+  "name": "Oma rata",
+  "startLine": {
+    "x": 242,
+    "y": 90,
+    "angle": 0
+  },
+  "pieces": [
+    {
+      "type": "curve",
+      "x": 322,
+      "y": 170,
+      "angle": 270,
+      "leftWall": true,
+      "rightWall": true
+    },
+    {
+      "type": "curve",
+      "x": 482,
+      "y": 170,
+      "angle": 90,
+      "leftWall": true,
+      "rightWall": true
+    },
+    {
+      "type": "curve",
+      "x": 642,
+      "y": 170,
+      "angle": 0,
+      "leftWall": true,
+      "rightWall": true
+    },
+    {
+      "type": "curve",
+      "x": 802,
+      "y": 170,
+      "angle": 180,
+      "leftWall": false,
+      "rightWall": true
+    },
+    {
+      "type": "curve",
+      "x": 802,
+      "y": 170,
+      "angle": 270,
+      "leftWall": false,
+      "rightWall": true
+    },
+    {
+      "type": "straight",
+      "x": 882,
+      "y": 250,
+      "angle": 90,
+      "leftWall": true,
+      "rightWall": false
+    },
+    {
+      "type": "curve",
+      "x": 802,
+      "y": 330,
+      "angle": 0,
+      "leftWall": false,
+      "rightWall": true
+    },
+    {
+      "type": "curve",
+      "x": 322,
+      "y": 330,
+      "angle": 90,
+      "leftWall": true,
+      "rightWall": true
+    },
+    {
+      "type": "curve",
+      "x": 162,
+      "y": 330,
+      "angle": 270,
+      "leftWall": true,
+      "rightWall": true
+    },
+    {
+      "type": "curve",
+      "x": 162,
+      "y": 170,
+      "angle": 90,
+      "leftWall": false,
+      "rightWall": true
+    },
+    {
+      "type": "curve",
+      "x": 162,
+      "y": 170,
+      "angle": 180,
+      "leftWall": false,
+      "rightWall": true
+    },
+    {
+      "type": "straight",
+      "x": 562,
+      "y": 250,
+      "angle": 0,
+      "leftWall": false,
+      "rightWall": true
+    },
+    {
+      "type": "straight",
+      "x": 722,
+      "y": 410,
+      "angle": 0,
+      "leftWall": false,
+      "rightWall": true
+    },
+    {
+      "type": "straight",
+      "x": 402,
+      "y": 410,
+      "angle": 0,
+      "leftWall": false,
+      "rightWall": true
+    },
+    {
+      "type": "straight",
+      "x": 562,
+      "y": 410,
+      "angle": 0,
+      "leftWall": false,
+      "rightWall": true
+    }
+  ]
+}
