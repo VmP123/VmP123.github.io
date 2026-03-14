@@ -158,7 +158,8 @@ screen and (max-width: 600px) {
 
     header {
         display: grid;
-        grid-template-columns: auto 1fr auto; /* [Menu] [Title] [Stats] */
+        grid-template-columns: auto 1fr auto;
+        /* [Menu] [Title] [Stats] */
         align-items: center;
         gap: 10px;
         padding-left: 10px;
@@ -166,8 +167,7 @@ screen and (max-width: 600px) {
     }
 
     header h1 {
-        font-size: 1rem;
-        /* Pienennetään otsikkoa mobiilissa */
+        font-size: 1.5rem;
         white-space: nowrap;
     }
 
@@ -179,20 +179,33 @@ screen and (max-width: 600px) {
     }
 
     .stats {
-        justify-self: end;
-        gap: 8px;
-    }
-
-    .stat-item .value {
-        font-size: 0.9rem;
-    }
-
-    .stat-item .label {
-        font-size: 0.6rem;
+        grid-column: 3;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        align-items: flex-end;
+        justify-content: center;
     }
 
     .stat-item {
-        align-items: flex-end; /* Tasataan numerot oikealle */
+        display: flex;
+        flex-direction: row;
+        align-items: baseline;
+        gap: 5px;
+        line-height: 1.1;
+    }
+
+    .stat-item .label {
+        font-size: 0.55rem;
+        opacity: 0.7;
+        text-align: right;
+    }
+
+    .stat-item .value {
+        font-size: 0.85rem;
+        font-weight: 700;
+        min-width: 1.2rem;
+        text-align: right;
     }
 }
 
