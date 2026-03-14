@@ -309,7 +309,7 @@ class Game {
             const scoreItem = document.createElement('div');
             scoreItem.className = 'stat-item';
             scoreItem.innerHTML = `
-                <span class="label">Pisteet:</span>
+                <span class="label">Pisteet</span>
                 <span id="score-count" class="value">0</span>
             `;
             stats.prepend(scoreItem);
@@ -319,7 +319,7 @@ class Game {
             const livesItem = document.createElement('div');
             livesItem.className = 'stat-item';
             livesItem.innerHTML = `
-                <span class="label">Elämät:</span>
+                <span class="label">Elämät</span>
                 <span id="lives-count" class="value">${INITIAL_LIVES}</span>
             `;
             stats.appendChild(livesItem);

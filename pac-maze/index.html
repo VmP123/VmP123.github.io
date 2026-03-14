@@ -12,99 +12,97 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
 </head>
 
-<body>
-    <button id="menu-toggle" class="mobile-only-flex" aria-label="Valikko">
-        <span></span>
-        <span></span>
-        <span></span>
-    </button>
-
-    <div class="game-container">
-        <header class="glass-panel">
-            <h1>Pac-Maze</h1>
-            <div class="header-right">
-                <div class="stats">
-                    <div class="stat-item">
-                        <span class="label">Päivän ennätys:</span>
-                        <span id="highscore-count" class="value">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="label">Kenttä:</span>
-                        <span id="level-count" class="value">1</span>
-                    </div>
+<div class="game-container">
+    <header class="glass-panel">
+        <button id="menu-toggle" class="mobile-only-flex" aria-label="Valikko">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <h1>Pac-Maze</h1>
+        <div class="header-right">
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="label">Päivän ennätys</span>
+                    <span id="highscore-count" class="value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">Kenttä</span>
+                    <span id="level-count" class="value">1</span>
                 </div>
             </div>
-        </header>
+        </div>
+    </header>
 
-        <main id="game-board">
-            <svg id="maze-svg" viewBox="-5 -5 410 410" preserveAspectRatio="xMidYMid meet">
-                <!-- Maze and entities will be rendered here -->
-            </svg>
-        </main>
+    <main id="game-board">
+        <svg id="maze-svg" viewBox="-5 -5 410 410" preserveAspectRatio="xMidYMid meet">
+            <!-- Maze and entities will be rendered here -->
+        </svg>
+    </main>
 
-        <div id="mobile-controls" class="mobile-only">
-            <div class="joystick">
-                <div class="sector up" id="ctrl-up"></div>
-                <div class="sector right" id="ctrl-right"></div>
-                <div class="sector down" id="ctrl-down"></div>
-                <div class="sector left" id="ctrl-left"></div>
-            </div>
+    <div id="mobile-controls" class="mobile-only">
+        <div class="joystick">
+            <div class="sector up" id="ctrl-up"></div>
+            <div class="sector right" id="ctrl-right"></div>
+            <div class="sector down" id="ctrl-down"></div>
+            <div class="sector left" id="ctrl-left"></div>
         </div>
     </div>
+</div>
 
-    <!-- Start Menu overlay -->
-    <div id="start-menu" class="overlay hidden">
-        <div class="glass-panel celebration">
-            <h2>Pac-Maze</h2>
-            <p>Valitse pelitila:</p>
-            <div class="menu-buttons">
-                <button id="continue-game-btn" class="hidden">Jatka peliä</button>
-                <div id="continue-divider" class="menu-divider hidden"></div>
-                <button id="mode-a-btn">A: Sokkelo</button>
-                <button id="mode-b-btn">B: kummitussokkelo</button>
-                <button id="mode-c-btn">C: Kerää kaikki</button>
-                <div class="menu-divider"></div>
-                <button id="fullscreen-btn" class="secondary-btn">Koko ruutu: Pois</button>
-            </div>
+<!-- Start Menu overlay -->
+<div id="start-menu" class="overlay hidden">
+    <div class="glass-panel celebration">
+        <h2>Pac-Maze</h2>
+        <p>Valitse pelitila:</p>
+        <div class="menu-buttons">
+            <button id="continue-game-btn" class="hidden">Jatka peliä</button>
+            <div id="continue-divider" class="menu-divider hidden"></div>
+            <button id="mode-a-btn">A: Sokkelo</button>
+            <button id="mode-b-btn">B: kummitussokkelo</button>
+            <button id="mode-c-btn">C: Kerää kaikki</button>
+            <div class="menu-divider"></div>
+            <button id="fullscreen-btn" class="secondary-btn">Koko ruutu: Pois</button>
         </div>
     </div>
+</div>
 
-    <!-- Celebration overlay (Win) -->
-    <div id="win-overlay" class="overlay hidden">
-        <div class="glass-panel celebration">
-            <h2>Hienoa!</h2>
-            <p>Labyrintti selvitetty.</p>
-            <div class="menu-buttons">
-                <button id="next-level-btn">Seuraava kenttä</button>
-            </div>
+<!-- Celebration overlay (Win) -->
+<div id="win-overlay" class="overlay hidden">
+    <div class="glass-panel celebration">
+        <h2>Hienoa!</h2>
+        <p>Labyrintti selvitetty.</p>
+        <div class="menu-buttons">
+            <button id="next-level-btn">Seuraava kenttä</button>
         </div>
     </div>
+</div>
 
-    <!-- Game Over overlay (Lose) -->
-    <div id="lose-overlay" class="overlay hidden">
-        <div class="glass-panel celebration">
-            <h2>Peli ohi!</h2>
-            <p>Kummitus sai sinut kiinni.</p>
-            <div class="menu-buttons">
-                <button id="retry-btn">Yritä uudelleen</button>
-                <button id="lose-back-btn" class="secondary-btn">Päävalikkoon</button>
-            </div>
+<!-- Game Over overlay (Lose) -->
+<div id="lose-overlay" class="overlay hidden">
+    <div class="glass-panel celebration">
+        <h2>Peli ohi!</h2>
+        <p>Kummitus sai sinut kiinni.</p>
+        <div class="menu-buttons">
+            <button id="retry-btn">Yritä uudelleen</button>
+            <button id="lose-back-btn" class="secondary-btn">Päävalikkoon</button>
         </div>
     </div>
+</div>
 
-    <!-- Death overlay (Lose a life) -->
-    <div id="death-overlay" class="overlay hidden">
-        <div class="glass-panel celebration">
-            <h2>Hups!</h2>
-            <p>Menetit elämän.</p>
-            <div class="menu-buttons">
-                <button id="continue-level-btn">Jatka peliä</button>
-            </div>
+<!-- Death overlay (Lose a life) -->
+<div id="death-overlay" class="overlay hidden">
+    <div class="glass-panel celebration">
+        <h2>Hups!</h2>
+        <p>Menetit elämän.</p>
+        <div class="menu-buttons">
+            <button id="continue-level-btn">Jatka peliä</button>
         </div>
     </div>
+</div>
 
-    <script src="maze.js"></script>
-    <script src="game.js"></script>
+<script src="maze.js"></script>
+<script src="game.js"></script>
 </body>
 
 </html>
