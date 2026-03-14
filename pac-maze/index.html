@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
     <button id="menu-toggle" class="mobile-only-flex" aria-label="Valikko">
         <span></span>
@@ -42,7 +44,6 @@
                 <div class="sector right" id="ctrl-right"></div>
                 <div class="sector down" id="ctrl-down"></div>
                 <div class="sector left" id="ctrl-left"></div>
-                <div class="center-dot"></div>
             </div>
         </div>
     </div>
@@ -54,7 +55,9 @@
             <p>Valitse pelitila:</p>
             <div class="menu-buttons">
                 <button id="mode-a-btn">A: Sokkelo (Ei kummituksia)</button>
-                <button id="mode-b-btn">B: Klassinen (Kummitukset & oikotiet)</button>
+                <button id="mode-b-btn">B: Klassinen (Kummitukset)</button>
+                <div class="menu-divider"></div>
+                <button id="fullscreen-btn" class="secondary-btn">Koko ruutu: Pois</button>
             </div>
         </div>
     </div>
@@ -71,4 +74,5 @@
     <script src="maze.js"></script>
     <script src="game.js"></script>
 </body>
+
 </html>

@@ -174,20 +174,23 @@ class Game {
             // Valikko-ohjaus
             if (!this.startMenu.classList.contains('hidden')) {
                 if (['arrowup', 'w', 'arrowleft', 'a'].includes(key)) {
-                    this.menuIndex = 0;
+                    this.menuIndex = (this.menuIndex - 1 + 3) % 3;
                     this.updateMenuHighlight();
                 } else if (['arrowdown', 's', 'arrowright', 'd'].includes(key)) {
-                    this.menuIndex = 1;
+                    this.menuIndex = (this.menuIndex + 1) % 3;
                     this.updateMenuHighlight();
                 } else if (key === 'enter') {
                     if (this.menuIndex === 0) {
                         this.onlyOnePath = true;
                         this.ghostCount = 0;
-                    } else {
+                        this.startGameWithMode();
+                    } else if (this.menuIndex === 1) {
                         this.onlyOnePath = false;
                         this.ghostCount = 3;
+                        this.startGameWithMode();
+                    } else if (this.menuIndex === 2) {
+                        document.getElementById('fullscreen-btn').click();
                     }
-                    this.startGameWithMode();
                 }
                 return;
             }
@@ -311,6 +314,31 @@ class Game {
             this.startGameWithMode();
         });
 
+        // Koko ruutu -painike
+        const fsBtn = document.getElementById('fullscreen-btn');
+        if (fsBtn) {
+            fsBtn.addEventListener('click', () => {
+                this.menuIndex = 2;
+                this.updateMenuHighlight();
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.error(`Virhe koko ruutuun siirtymisessä: ${err.message}`);
+                    });
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            });
+        }
+
+        // Päivitetään tekstin tila kun koko ruutu muuttuu
+        document.addEventListener('fullscreenchange', () => {
+            if (fsBtn) {
+                fsBtn.textContent = document.fullscreenElement ? 'Koko ruutu: Päällä' : 'Koko ruutu: Pois';
+            }
+        });
+
         // Sulje valikko klikkaamalla taustaa
         this.startMenu.addEventListener('click', (e) => {
             if (e.target === this.startMenu) {
@@ -337,8 +365,9 @@ class Game {
         const setupMobileBtn = (id, dir) => {
             const el = document.getElementById(id);
             if (el) {
-                const handleTouch = (e) => {
+                const handleStart = (e) => {
                     e.preventDefault();
+                    el.classList.add('active');
                     this.player.nextDir = dir;
                     // Jos peli on pysähtynyt ja painetaan suuntaa, aloitetaan liike
                     if (this.gameRunning && !this.player.dir) {
@@ -348,8 +377,17 @@ class Game {
                         }
                     }
                 };
-                el.addEventListener('touchstart', handleTouch);
-                el.addEventListener('mousedown', handleTouch);
+
+                const handleEnd = () => {
+                    el.classList.remove('active');
+                };
+
+                el.addEventListener('touchstart', handleStart);
+                el.addEventListener('mousedown', handleStart);
+                document.addEventListener('touchend', handleEnd);
+                document.addEventListener('mouseup', handleEnd);
+                document.addEventListener('touchcancel', handleEnd);
+                el.addEventListener('mouseleave', handleEnd);
             }
         };
 
@@ -364,13 +402,11 @@ class Game {
     updateMenuHighlight() {
         const btnA = document.getElementById('mode-a-btn');
         const btnB = document.getElementById('mode-b-btn');
-        if (this.menuIndex === 0) {
-            btnA.classList.add('focused');
-            btnB.classList.remove('focused');
-        } else {
-            btnA.classList.remove('focused');
-            btnB.classList.add('focused');
-        }
+        const btnFS = document.getElementById('fullscreen-btn');
+        
+        btnA.classList.toggle('focused', this.menuIndex === 0);
+        btnB.classList.toggle('focused', this.menuIndex === 1);
+        if (btnFS) btnFS.classList.toggle('focused', this.menuIndex === 2);
     }
 
     startGameWithMode() {

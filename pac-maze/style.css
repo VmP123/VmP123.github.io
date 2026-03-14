@@ -131,6 +131,7 @@ header h1 {
     .mobile-only {
         display: block;
     }
+
     .mobile-only-flex {
         display: flex;
     }
@@ -148,7 +149,8 @@ header h1 {
     height: 44px;
     padding: 10px;
     border-radius: 12px;
-    display: none; /* Default hidden */
+    display: none;
+    /* Default hidden */
     flex-direction: column;
     justify-content: space-around;
     align-items: center;
@@ -175,15 +177,41 @@ header h1 {
 
 .joystick {
     position: relative;
-    width: 160px;
-    height: 160px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    width: 170px;
+    height: 170px;
+    background: var(--accent-color);
+    border: 4px solid #000;
     border-radius: 50%;
     overflow: hidden;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(0, 0, 0, 0.2);
     touch-action: none;
+}
+
+/* Dividing lines at 45 degree angles */
+.joystick::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -20%;
+    width: 140%;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.25);
+    transform: translateY(-50%) rotate(45deg);
+    z-index: 10;
+    pointer-events: none;
+}
+
+.joystick::after {
+    content: '';
+    position: absolute;
+    top: -20%;
+    left: 50%;
+    width: 4px;
+    height: 140%;
+    background: rgba(0, 0, 0, 0.25);
+    transform: translateX(-50%) rotate(45deg);
+    z-index: 10;
+    pointer-events: none;
 }
 
 .sector {
@@ -193,49 +221,47 @@ header h1 {
     top: 0;
     left: 0;
     clip-path: polygon(50% 50%, 0 0, 100% 0);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1.5px solid rgba(255, 255, 255, 0.15);
-    transition: background 0.2s, transform 0.1s;
+    background: transparent;
+    transition: background 0.1s, transform 0.05s;
     display: flex;
     justify-content: center;
-    padding-top: 20px;
+    padding-top: 25px;
+    z-index: 5;
 }
 
 .sector::before {
     content: '';
-    width: 12px;
-    height: 12px;
-    border-top: 3px solid rgba(255, 255, 255, 0.5);
-    border-left: 3px solid rgba(255, 255, 255, 0.5);
+    width: 16px;
+    height: 16px;
+    border-top: 4px solid rgba(0, 0, 0, 0.5);
+    border-left: 4px solid rgba(0, 0, 0, 0.5);
     transform: rotate(45deg);
+    transition: border-color 0.1s, transform 0.1s;
 }
 
-.sector:active {
-    background: rgba(252, 224, 71, 0.6);
-    transform: scale(0.92);
+.sector.active {
+    background: rgba(0, 0, 0, 0.15);
 }
 
-.sector:active::before {
-    border-color: #fff;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+.sector.active::before {
+    border-color: #000;
+    transform: rotate(45deg) scale(1.1);
 }
 
-.sector.up { transform: rotate(0deg); }
-.sector.right { transform: rotate(90deg); }
-.sector.down { transform: rotate(180deg); }
-.sector.left { transform: rotate(270deg); }
+.sector.up {
+    transform: rotate(0deg);
+}
 
-.center-dot {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 40px;
-    height: 40px;
-    background: var(--accent-color);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    box-shadow: 0 0 15px rgba(252, 224, 71, 0.5);
-    pointer-events: none;
+.sector.right {
+    transform: rotate(90deg);
+}
+
+.sector.down {
+    transform: rotate(180deg);
+}
+
+.sector.left {
+    transform: rotate(270deg);
 }
 
 /* Overlays */
@@ -273,8 +299,15 @@ header h1 {
 .menu-buttons {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
     margin-top: 25px;
+}
+
+.menu-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.15);
+    /* margin: 15px 0; */
+    width: 100%;
 }
 
 .menu-buttons button {
@@ -282,6 +315,19 @@ header h1 {
     width: 100%;
     padding: 15px;
     font-size: 0.9rem;
+}
+
+.menu-buttons button.secondary-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.menu-buttons button.secondary-btn.focused,
+.menu-buttons button.secondary-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 15px rgba(252, 224, 71, 0.2);
 }
 
 button {
