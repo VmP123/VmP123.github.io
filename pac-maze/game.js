@@ -66,10 +66,11 @@ class Game {
 
         this.isMoving = false;
         this.gameRunning = false; // Aloitetaan pysäytettynä
+        this.lastTime = 0; // Viimeisimmän ruudun aikaleima
 
         this.setupEventListeners();
         // init() kutsutaan vasta kun valikko on kuitattu
-        this.gameLoop();
+        requestAnimationFrame((time) => this.gameLoop(time));
     }
 
     init() {
@@ -154,7 +155,7 @@ class Game {
                 if (!this.startMenu.classList.contains('hidden')) {
                     this.closeMenuWithoutReset();
                 } else if (!this.winOverlay.classList.contains('hidden')) {
-                    this.winOverlay.classList.add('hidden');
+                    this.startNextLevel();
                 } else if (this.deathOverlay && !this.deathOverlay.classList.contains('hidden')) {
                     this.deathOverlay.classList.add('hidden');
                     this.resetPositions();
@@ -753,16 +754,21 @@ class Game {
         body.setAttribute("transform", `rotate(${rotation}, ${x}, ${y})`);
     }
 
-    gameLoop() {
+    gameLoop(time) {
+        if (!this.lastTime) this.lastTime = time;
+        const deltaTime = (time - this.lastTime) / (1000 / 60); // Skaalataan 60 FPS:n mukaan
+        this.lastTime = time;
+
         if (this.gameRunning) {
-            this.update();
-            this.updateGhosts();
+            this.update(deltaTime);
+            this.updateGhosts(deltaTime);
         }
-        requestAnimationFrame(() => this.gameLoop());
+        requestAnimationFrame((t) => this.gameLoop(t));
     }
 
-    update() {
+    update(dt) {
         const p = this.player;
+        const currentSpeed = p.speed * dt;
 
         if (p.dir) {
             // Liikutaan kohti seuraavaa ruutukeskipistettä
@@ -773,15 +779,15 @@ class Game {
             const distBefore = Math.sqrt((p.pixelX - targetX) ** 2 + (p.pixelY - targetY) ** 2);
 
             // Liikuta pikseleitä
-            if (p.dir === 'UP') p.pixelY -= p.speed;
-            if (p.dir === 'DOWN') p.pixelY += p.speed;
-            if (p.dir === 'LEFT') p.pixelX -= p.speed;
-            if (p.dir === 'RIGHT') p.pixelX += p.speed;
+            if (p.dir === 'UP') p.pixelY -= currentSpeed;
+            if (p.dir === 'DOWN') p.pixelY += currentSpeed;
+            if (p.dir === 'LEFT') p.pixelX -= currentSpeed;
+            if (p.dir === 'RIGHT') p.pixelX += currentSpeed;
 
             const distAfter = Math.sqrt((p.pixelX - targetX) ** 2 + (p.pixelY - targetY) ** 2);
 
             // Jos ollaan saavuttu tai ohitettu keskipiste, käsitellään kääntyminen/pysähtyminen
-            if (distAfter >= distBefore || distAfter < p.speed) {
+            if (distAfter >= distBefore || distAfter < currentSpeed) {
                 // Lukitaan keskelle
                 p.pixelX = targetX;
                 p.pixelY = targetY;
@@ -915,8 +921,8 @@ class Game {
         }
     }
 
-    updateGhosts() {
-        this.ghosts.forEach(ghost => ghost.update());
+    updateGhosts(dt) {
+        this.ghosts.forEach(ghost => ghost.update(dt));
     }
 
     checkGhostCollision() {
@@ -1041,24 +1047,25 @@ class Ghost {
         return g;
     }
 
-    update() {
+    update(dt) {
         if (!this.dir) {
             this.chooseNewDirection();
         }
 
+        const currentSpeed = this.speed * dt;
         let targetX = (this.c + 0.5) * CELL_SIZE;
         let targetY = (this.r + 0.5) * CELL_SIZE;
 
         const distBefore = Math.sqrt((this.pixelX - targetX) ** 2 + (this.pixelY - targetY) ** 2);
 
-        if (this.dir === 'UP') this.pixelY -= this.speed;
-        if (this.dir === 'DOWN') this.pixelY += this.speed;
-        if (this.dir === 'LEFT') this.pixelX -= this.speed;
-        if (this.dir === 'RIGHT') this.pixelX += this.speed;
+        if (this.dir === 'UP') this.pixelY -= currentSpeed;
+        if (this.dir === 'DOWN') this.pixelY += currentSpeed;
+        if (this.dir === 'LEFT') this.pixelX -= currentSpeed;
+        if (this.dir === 'RIGHT') this.pixelX += currentSpeed;
 
         const distAfter = Math.sqrt((this.pixelX - targetX) ** 2 + (this.pixelY - targetY) ** 2);
 
-        if (distAfter >= distBefore || distAfter < this.speed) {
+        if (distAfter >= distBefore || distAfter < currentSpeed) {
             this.pixelX = targetX;
             this.pixelY = targetY;
             this.chooseNewDirection();
