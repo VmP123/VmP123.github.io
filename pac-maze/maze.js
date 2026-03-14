@@ -3,11 +3,12 @@
  * Generoi 10x10 ruudukon, jossa jokainen ruutu on saavutettavissa.
  */
 class Maze {
-    constructor(cols = 10, rows = 10, onlyOnePath = true, shortcutChance = 0.1) {
+    constructor(cols = 10, rows = 10, onlyOnePath = true, shortcutChance = 0.1, hasExits = true) {
         this.cols = cols;
         this.rows = rows;
         this.onlyOnePath = onlyOnePath;
         this.shortcutChance = shortcutChance;
+        this.hasExits = hasExits;
         this.grid = [];
         this.init();
     }
@@ -61,15 +62,17 @@ class Maze {
         const neighbors = [];
         if (goalR > 0) neighbors.push(this.grid[goalR - 1][goalC]);
         if (goalC > 0) neighbors.push(this.grid[goalR][goalC - 1]);
-        
+
         const randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
         this.removeWalls(this.grid[goalR][goalC], randomNeighbor);
         this.grid[goalR][goalC].visited = true;
-        
-        // Poistetaan aloitusruudun (vasen ylä) vasen seinä
-        this.grid[0][0].walls.left = false;
-        // Poistetaan maaliruudun (oikea ala) oikea seinä
-        this.grid[goalR][goalC].walls.right = false;
+
+        if (this.hasExits) {
+            // Poistetaan aloitusruudun (vasen ylä) vasen seinä
+            this.grid[0][0].walls.left = false;
+            // Poistetaan maaliruudun (oikea ala) oikea seinä
+            this.grid[goalR][goalC].walls.right = false;
+        }
 
         // Lisätään oikoteitä, jos halutaan useita reittejä
         if (!this.onlyOnePath) {
@@ -89,7 +92,7 @@ class Maze {
                 if (c < this.cols - 1 && this.grid[r][c].walls.right) {
                     const wallAboveMissing = r > 0 && !this.grid[r - 1][c].walls.right;
                     const wallBelowMissing = r < this.rows - 1 && !this.grid[r + 1][c].walls.right;
-                    
+
                     if (!wallAboveMissing && !wallBelowMissing && Math.random() < this.shortcutChance) {
                         this.removeWalls(this.grid[r][c], this.grid[r][c + 1]);
                     }
@@ -106,8 +109,6 @@ class Maze {
             }
         }
     }
-
-
 
     getUnvisitedNeighbor(cell) {
         const neighbors = [];

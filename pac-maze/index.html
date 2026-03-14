@@ -25,6 +25,10 @@
             <div class="header-right">
                 <div class="stats">
                     <div class="stat-item">
+                        <span class="label">Päivän ennätys:</span>
+                        <span id="highscore-count" class="value">0</span>
+                    </div>
+                    <div class="stat-item">
                         <span class="label">Kenttä:</span>
                         <span id="level-count" class="value">1</span>
                     </div>
@@ -49,25 +53,53 @@
     </div>
 
     <!-- Start Menu overlay -->
-    <div id="start-menu" class="overlay">
+    <div id="start-menu" class="overlay hidden">
         <div class="glass-panel celebration">
             <h2>Pac-Maze</h2>
             <p>Valitse pelitila:</p>
             <div class="menu-buttons">
-                <button id="mode-a-btn">A: Sokkelo (Ei kummituksia)</button>
-                <button id="mode-b-btn">B: Klassinen (Kummitukset)</button>
+                <button id="continue-game-btn" class="hidden">Jatka peliä</button>
+                <div id="continue-divider" class="menu-divider hidden"></div>
+                <button id="mode-a-btn">A: Sokkelo</button>
+                <button id="mode-b-btn">B: kummitussokkelo</button>
+                <button id="mode-c-btn">C: Kerää kaikki</button>
                 <div class="menu-divider"></div>
                 <button id="fullscreen-btn" class="secondary-btn">Koko ruutu: Pois</button>
             </div>
         </div>
     </div>
 
-    <!-- Celebration overlay -->
+    <!-- Celebration overlay (Win) -->
     <div id="win-overlay" class="overlay hidden">
         <div class="glass-panel celebration">
             <h2>Hienoa!</h2>
             <p>Labyrintti selvitetty.</p>
-            <button id="next-level-btn">Seuraava kenttä</button>
+            <div class="menu-buttons">
+                <button id="next-level-btn">Seuraava kenttä</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over overlay (Lose) -->
+    <div id="lose-overlay" class="overlay hidden">
+        <div class="glass-panel celebration">
+            <h2>Peli ohi!</h2>
+            <p>Kummitus sai sinut kiinni.</p>
+            <div class="menu-buttons">
+                <button id="retry-btn">Yritä uudelleen</button>
+                <button id="lose-back-btn" class="secondary-btn">Päävalikkoon</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Death overlay (Lose a life) -->
+    <div id="death-overlay" class="overlay hidden">
+        <div class="glass-panel celebration">
+            <h2>Hups!</h2>
+            <p>Menetit elämän.</p>
+            <div class="menu-buttons">
+                <button id="continue-level-btn">Jatka peliä</button>
+            </div>
         </div>
     </div>
 

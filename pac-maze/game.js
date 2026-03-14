@@ -62,7 +62,11 @@ class Game {
         this.lives = INITIAL_LIVES;
         this.scoreElement = null; // Luodaan myöhemmin
         this.livesElement = null; // Luodaan myöhemmin
-        this.menuIndex = 0; // 0 = Mode A, 1 = Mode B
+        this.highScoreElement = document.getElementById('highscore-count');
+        this.menuIndex = 0; // Aktiivinen nappi
+        this.gameMode = 'A'; // 'A', 'B' tai 'C'
+
+        this.loadDailyHighScores();
 
         this.isMoving = false;
         this.gameRunning = false; // Aloitetaan pysäytettynä
@@ -70,11 +74,90 @@ class Game {
 
         this.setupEventListeners();
         // init() kutsutaan vasta kun valikko on kuitattu
+        this.showOverlay('start-menu');
         requestAnimationFrame((time) => this.gameLoop(time));
     }
 
+    showOverlay(id) {
+        this.hideAllOverlays();
+        const overlay = document.getElementById(id);
+        if (overlay) {
+            overlay.classList.remove('hidden');
+            document.body.classList.add('game-paused'); // Pysäytetään animaatiot
+            this.gameRunning = false;
+            this.menuIndex = 0; // Resetoidaan valinta aina uuteen valikkoon
+
+            this.updateMenuHighlight();
+        }
+    }
+
+    hideAllOverlays() {
+        const overlays = document.querySelectorAll('.overlay');
+        overlays.forEach(o => o.classList.add('hidden'));
+        document.body.classList.remove('game-paused'); // Käynnistetään animaatiot
+    }
+
+    updateMenuButtonsVisibility() {
+        const continueBtn = document.getElementById('continue-game-btn');
+        const continueDivider = document.getElementById('continue-divider');
+        const isGameInProgress = this.maze && this.lives > 0;
+
+        if (continueBtn) continueBtn.classList.toggle('hidden', !isGameInProgress);
+        if (continueDivider) continueDivider.classList.toggle('hidden', !isGameInProgress);
+
+        // Säädetään valinta jos peli on kesken
+        if (isGameInProgress && this.menuIndex === 0) {
+            // Jos peli on kesken, mutta fokus on valinnassa A, siirretään se Continue-peliin?
+            // Tai pidetään se siinä missä olikin.
+        }
+    }
+
+    loadDailyHighScores() {
+        const today = new Date().toISOString().split('T')[0];
+        const stored = localStorage.getItem('pac-maze-highscores');
+
+        if (stored) {
+            const data = JSON.parse(stored);
+            if (data.date === today) {
+                this.highScores = data.scores;
+            } else {
+                // Uusi päivä, nollataan ennätykset
+                this.highScores = { A: 0, B: 0, C: 0 };
+                this.saveHighScores(today);
+            }
+        } else {
+            this.highScores = { A: 0, B: 0, C: 0 };
+            this.saveHighScores(today);
+        }
+        this.updateHighScoreUI();
+    }
+
+    saveHighScores(dateOverride) {
+        const today = dateOverride || new Date().toISOString().split('T')[0];
+        const data = {
+            date: today,
+            scores: this.highScores
+        };
+        localStorage.setItem('pac-maze-highscores', JSON.stringify(data));
+    }
+
+    checkNewHighScore() {
+        if (this.score > this.highScores[this.gameMode]) {
+            this.highScores[this.gameMode] = this.score;
+            this.saveHighScores();
+            this.updateHighScoreUI();
+        }
+    }
+
+    updateHighScoreUI() {
+        if (this.highScoreElement) {
+            this.highScoreElement.textContent = this.highScores[this.gameMode] || 0;
+        }
+    }
+
     init() {
-        this.maze = new Maze(GRID_SIZE, GRID_SIZE, this.onlyOnePath, SHORTCUT_CHANCE);
+        const hasExits = this.gameMode !== 'C';
+        this.maze = new Maze(GRID_SIZE, GRID_SIZE, this.onlyOnePath, SHORTCUT_CHANCE, hasExits);
         this.gridData = this.maze.generate();
 
 
@@ -137,8 +220,8 @@ class Game {
         this.cherry = null;
         this.cherryVisible = false;
         this.cherryDealtWith = false;
-        if (this.cherryTimer) clearTimeout(this.cherryTimer);
-        this.cherryTimer = null;
+        this.cherryTimerMs = 0;
+        this.isCherryBlinking = false;
 
         this.updateScoreUI();
         this.winOverlay.classList.add('hidden');
@@ -150,47 +233,46 @@ class Game {
         window.addEventListener('keydown', (e) => {
             const key = e.key.toLowerCase();
 
-            // ESC avaa/sulkee valitun dialogin tai valikon
+            // ESC-logiikka
             if (key === 'escape') {
-                if (!this.startMenu.classList.contains('hidden')) {
-                    this.closeMenuWithoutReset();
-                } else if (!this.winOverlay.classList.contains('hidden')) {
-                    this.startNextLevel();
-                } else if (this.deathOverlay && !this.deathOverlay.classList.contains('hidden')) {
-                    this.deathOverlay.classList.add('hidden');
-                    this.resetPositions();
-                    this.gameRunning = true;
-                } else if (this.loseOverlay && !this.loseOverlay.classList.contains('hidden')) {
-                    this.loseOverlay.classList.add('hidden');
+                const activeOverlay = Array.from(document.querySelectorAll('.overlay'))
+                    .find(el => !el.classList.contains('hidden'));
+
+                if (activeOverlay) {
+                    if (activeOverlay.id === 'start-menu') {
+                        this.closeMenuWithoutReset();
+                    } else if (activeOverlay.id === 'win-overlay') {
+                        this.startNextLevel();
+                    } else if (activeOverlay.id === 'death-overlay') {
+                        this.continueLevel();
+                    } else if (activeOverlay.id === 'lose-overlay') {
+                        this.goToMainMenu();
+                    }
                 } else {
-                    // Jos mikään ei ole auki, avataan päävalikko
+                    // Jos mikään ei ole auki, avataan taukopäävalikko
                     this.gameRunningBeforeMenu = this.gameRunning;
-                    this.gameRunning = false;
-                    this.startMenu.classList.remove('hidden');
-                    this.updateMenuHighlight();
+                    this.showOverlay('start-menu');
                 }
                 return;
             }
 
-            // Valikko-ohjaus
-            if (!this.startMenu.classList.contains('hidden')) {
-                if (['arrowup', 'w', 'arrowleft', 'a'].includes(key)) {
-                    this.menuIndex = (this.menuIndex - 1 + 3) % 3;
-                    this.updateMenuHighlight();
-                } else if (['arrowdown', 's', 'arrowright', 'd'].includes(key)) {
-                    this.menuIndex = (this.menuIndex + 1) % 3;
-                    this.updateMenuHighlight();
-                } else if (key === 'enter') {
-                    if (this.menuIndex === 0) {
-                        this.onlyOnePath = true;
-                        this.ghostCount = 0;
-                        this.startGameWithMode();
-                    } else if (this.menuIndex === 1) {
-                        this.onlyOnePath = false;
-                        this.ghostCount = 3;
-                        this.startGameWithMode();
-                    } else if (this.menuIndex === 2) {
-                        document.getElementById('fullscreen-btn').click();
+            // Valikko-ohjaus kaikille overlay-ikkunoille
+            const activeOverlay = Array.from(document.querySelectorAll('.overlay'))
+                .find(el => !el.classList.contains('hidden'));
+
+            if (activeOverlay) {
+                // Etsitään kaikki näkyvät painikkeet aktiivisesta valikosta
+                const buttons = Array.from(activeOverlay.querySelectorAll('button:not(.hidden)'));
+
+                if (buttons.length > 0) {
+                    if (['arrowup', 'w', 'arrowleft', 'a'].includes(key)) {
+                        this.menuIndex = (this.menuIndex - 1 + buttons.length) % buttons.length;
+                        this.updateMenuHighlight();
+                    } else if (['arrowdown', 's', 'arrowright', 'd'].includes(key)) {
+                        this.menuIndex = (this.menuIndex + 1) % buttons.length;
+                        this.updateMenuHighlight();
+                    } else if (key === 'enter') {
+                        this.handleMenuSelection();
                     }
                 }
                 return;
@@ -205,20 +287,14 @@ class Game {
             if (key === 'enter' && !this.gameRunning) {
                 if (!this.winOverlay.classList.contains('hidden')) {
                     this.startNextLevel();
-                } else if (this.deathOverlay && !this.deathOverlay.classList.contains('hidden')) {
-                    this.deathOverlay.classList.add('hidden');
-                    this.resetPositions();
-                    this.gameRunning = true;
-                } else if (this.loseOverlay && !this.loseOverlay.classList.contains('hidden')) {
-                    this.level = 1;
-                    this.score = 0;
-                    this.lives = INITIAL_LIVES;
-                    this.levelLabel.textContent = this.level;
-                    this.init();
+                } else if (!this.deathOverlay.classList.contains('hidden')) {
+                    this.continueLevel();
+                } else if (!this.loseOverlay.classList.contains('hidden')) {
+                    this.goToMainMenu();
                 }
             }
 
-            // Jos peli on pysähtynyt ja painetaan suuntaa, aloitetaan liike
+            // Jos peli on käynnissä mutta hahmo ei liiku, aloitetaan liike heti jos mahdollista
             if (this.gameRunning && !this.player.dir && this.player.nextDir) {
                 if (this.canMoveInDirection(this.player.x, this.player.y, this.player.nextDir)) {
                     this.player.dir = this.player.nextDir;
@@ -227,7 +303,7 @@ class Game {
             }
         });
 
-        // Lisää pistenäyttö ja elämät headeriin jos niitä ei ole
+        // Lisää pistenäyttö ja elämät headeriin jos niitä ei on
         const stats = document.querySelector('.stats');
         if (stats && !document.getElementById('score-count')) {
             const scoreItem = document.createElement('div');
@@ -251,50 +327,25 @@ class Game {
 
         this.scoreElement = document.getElementById('score-count');
         this.livesElement = document.getElementById('lives-count');
+        this.loseOverlay = document.getElementById('lose-overlay');
+        this.deathOverlay = document.getElementById('death-overlay');
 
-        // Häviöikkuna
-        if (!document.getElementById('lose-overlay')) {
-            const loseOverlay = document.createElement('div');
-            loseOverlay.id = 'lose-overlay';
-            loseOverlay.className = 'overlay hidden';
-            loseOverlay.innerHTML = `
-                <div class="glass-panel celebration">
-                    <h2>Peli ohi!</h2>
-                    <p>Kummitus sai sinut kiinni.</p>
-                    <button id="retry-btn">Yritä uudelleen</button>
-                </div>
-            `;
-            document.body.appendChild(loseOverlay);
-            this.loseOverlay = loseOverlay;
-            document.getElementById('retry-btn').addEventListener('click', () => {
-                this.level = 1;
-                this.score = 0;
-                this.lives = INITIAL_LIVES;
-                this.levelLabel.textContent = this.level;
-                this.init();
-            });
-        }
+        // Painikkeiden tapahtumienhallinta
+        document.getElementById('continue-game-btn').addEventListener('click', () => {
+            this.closeMenuWithoutReset();
+        });
 
-        // Kuolema-ikkuna (elämä menee)
-        if (!document.getElementById('death-overlay')) {
-            const deathOverlay = document.createElement('div');
-            deathOverlay.id = 'death-overlay';
-            deathOverlay.className = 'overlay hidden';
-            deathOverlay.innerHTML = `
-                <div class="glass-panel celebration">
-                    <h2>Hups!</h2>
-                    <p>Menetit elämän.</p>
-                    <button id="continue-btn">Jatka peliä</button>
-                </div>
-            `;
-            document.body.appendChild(deathOverlay);
-            this.deathOverlay = deathOverlay;
-            document.getElementById('continue-btn').addEventListener('click', () => {
-                this.deathOverlay.classList.add('hidden');
-                this.resetPositions();
-                this.gameRunning = true;
-            });
-        }
+        document.getElementById('retry-btn').addEventListener('click', () => {
+            this.startGameWithMode();
+        });
+
+        document.getElementById('lose-back-btn').addEventListener('click', () => {
+            this.goToMainMenu();
+        });
+
+        document.getElementById('continue-level-btn').addEventListener('click', () => {
+            this.continueLevel();
+        });
 
         this.nextLevelBtn.addEventListener('click', () => {
             this.startNextLevel();
@@ -304,14 +355,21 @@ class Game {
         document.getElementById('mode-a-btn').addEventListener('click', () => {
             this.onlyOnePath = true;
             this.ghostCount = 0;
-            this.menuIndex = 0;
+            this.gameMode = 'A';
             this.startGameWithMode();
         });
 
         document.getElementById('mode-b-btn').addEventListener('click', () => {
             this.onlyOnePath = false;
             this.ghostCount = 3;
-            this.menuIndex = 1;
+            this.gameMode = 'B';
+            this.startGameWithMode();
+        });
+
+        document.getElementById('mode-c-btn').addEventListener('click', () => {
+            this.onlyOnePath = false;
+            this.ghostCount = 3;
+            this.gameMode = 'C';
             this.startGameWithMode();
         });
 
@@ -353,16 +411,14 @@ class Game {
             menuToggle.addEventListener('click', () => {
                 if (this.startMenu.classList.contains('hidden')) {
                     this.gameRunningBeforeMenu = this.gameRunning;
-                    this.gameRunning = false;
-                    this.startMenu.classList.remove('hidden');
-                    this.updateMenuHighlight();
+                    this.showOverlay('start-menu');
                 } else {
                     this.closeMenuWithoutReset();
                 }
             });
         }
 
-        // Mobiiliohjaimet
+        // Mobiiliohjaimet (jatkokäsittely pysyy samana)
         const setupMobileBtn = (id, dir) => {
             const el = document.getElementById(id);
             if (el) {
@@ -370,7 +426,6 @@ class Game {
                     e.preventDefault();
                     el.classList.add('active');
                     this.player.nextDir = dir;
-                    // Jos peli on pysähtynyt ja painetaan suuntaa, aloitetaan liike
                     if (this.gameRunning && !this.player.dir) {
                         if (this.canMoveInDirection(this.player.x, this.player.y, this.player.nextDir)) {
                             this.player.dir = this.player.nextDir;
@@ -401,17 +456,49 @@ class Game {
     }
 
     updateMenuHighlight() {
-        const btnA = document.getElementById('mode-a-btn');
-        const btnB = document.getElementById('mode-b-btn');
-        const btnFS = document.getElementById('fullscreen-btn');
-        
-        btnA.classList.toggle('focused', this.menuIndex === 0);
-        btnB.classList.toggle('focused', this.menuIndex === 1);
-        if (btnFS) btnFS.classList.toggle('focused', this.menuIndex === 2);
+        this.updateMenuButtonsVisibility();
+
+        const activeOverlay = Array.from(document.querySelectorAll('.overlay'))
+            .find(el => !el.classList.contains('hidden'));
+
+        if (!activeOverlay) return;
+
+        // Etsitään kaikki näkyvät painikkeet ja korostetaan valittu
+        const buttons = Array.from(activeOverlay.querySelectorAll('button:not(.hidden)'));
+        buttons.forEach((btn, idx) => {
+            btn.classList.toggle('focused', idx === this.menuIndex);
+        });
+
+        // Päivitetään ennätysnäyttö dynaamisesti jos ollaan alkuvalikossa
+        if (activeOverlay.id === 'start-menu') {
+            const selectedBtn = buttons[this.menuIndex];
+            if (selectedBtn) {
+                if (selectedBtn.id === 'mode-a-btn') { this.highScoreElement.textContent = this.highScores['A']; }
+                else if (selectedBtn.id === 'mode-b-btn') { this.highScoreElement.textContent = this.highScores['B']; }
+                else if (selectedBtn.id === 'mode-c-btn') { this.highScoreElement.textContent = this.highScores['C']; }
+                else { this.updateHighScoreUI(); } // Oletus (esim. jatka peliä)
+            }
+        }
+    }
+
+    handleMenuSelection() {
+        const activeOverlay = Array.from(document.querySelectorAll('.overlay'))
+            .find(el => !el.classList.contains('hidden'));
+
+        if (!activeOverlay) return;
+
+        const buttons = Array.from(activeOverlay.querySelectorAll('button:not(.hidden)'));
+        const selectedBtn = buttons[this.menuIndex];
+
+        if (selectedBtn) {
+            selectedBtn.click();
+        }
     }
 
     startGameWithMode() {
-        this.startMenu.classList.add('hidden');
+        this.hideAllOverlays();
+        this.updateHighScoreUI(); // Päivitetään heti oikean pelitilan ennätys
+        // Jos tila vaihtui, aloitetaan alusta level 1
         this.level = 1;
         this.score = 0;
         this.lives = INITIAL_LIVES;
@@ -420,18 +507,34 @@ class Game {
         this.gameRunning = true;
     }
 
+    goToMainMenu() {
+        this.maze = null; // Merkitään peli päättyneeksi
+        this.menuIndex = 0; // Aloitetaan valikko alusta
+        this.gameRunning = false;
+        this.gameRunningBeforeMenu = false;
+        this.showOverlay('start-menu');
+    }
+
     closeMenuWithoutReset() {
+        // Estetään valikon sulkeminen, jos peliä ei ole vielä kertaakaan aloitettu tai peli on ohi
+        if (!this.maze || this.lives <= 0) return;
+
         this.startMenu.classList.add('hidden');
-        // Palautetaan pelin tila sellaiseksi kuin se oli ennen valikon avaamista
         if (this.gameRunningBeforeMenu !== undefined) {
             this.gameRunning = this.gameRunningBeforeMenu;
         } else {
-            // Jos peliä ei oltu vielä aloitettu, pidetään se pysäytettynä
-            this.gameRunning = false;
+            this.gameRunning = true;
         }
     }
 
+    continueLevel() {
+        this.hideAllOverlays();
+        this.resetPositions();
+        this.gameRunning = true;
+    }
+
     startNextLevel() {
+        this.hideAllOverlays();
         this.level++;
         this.levelLabel.textContent = this.level;
         this.init();
@@ -501,13 +604,15 @@ class Game {
             this.layers.walls.appendChild(line);
         });
 
-        // Renderöidään maali (oikea alakulma)
-        const goal = document.createElementNS(SVG_NS, "circle");
-        goal.setAttribute("cx", (GRID_SIZE - 0.5) * CELL_SIZE);
-        goal.setAttribute("cy", (GRID_SIZE - 0.5) * CELL_SIZE);
-        goal.setAttribute("r", "8");
-        goal.setAttribute("class", "goal-node");
-        this.layers.goal.appendChild(goal);
+        // Renderöidään maali (vain jos ei olla keräily-tilassa C)
+        if (this.gameMode !== 'C') {
+            const goal = document.createElementNS(SVG_NS, "circle");
+            goal.setAttribute("cx", (GRID_SIZE - 0.5) * CELL_SIZE);
+            goal.setAttribute("cy", (GRID_SIZE - 0.5) * CELL_SIZE);
+            goal.setAttribute("r", "8");
+            goal.setAttribute("class", "goal-node");
+            this.layers.goal.appendChild(goal);
+        }
 
         // Valitaan kirsikan paikka jo tässä. Piste pidetään silti paikallaan, 
         // jotta pelaaja ei tiedä kirsikan paikkaa etukäteen.
@@ -526,9 +631,11 @@ class Game {
         this.dots = [];
         for (let r = 0; r < GRID_SIZE; r++) {
             for (let c = 0; c < GRID_SIZE; c++) {
-                // Maali-ruutuun tai aloitusruutuun ei laiteta pistettä
-                if (r === GRID_SIZE - 1 && c === GRID_SIZE - 1) continue;
+                // Aloitusruutuun ei laiteta koskaan pistettä
                 if (r === 0 && c === 0) continue;
+
+                // Tilassa A ja B ei laiteta pistettä maali-ruutuun
+                if (this.gameMode !== 'C' && r === GRID_SIZE - 1 && c === GRID_SIZE - 1) continue;
 
                 const dot = document.createElementNS(SVG_NS, "circle");
                 const x = (c + 0.5) * CELL_SIZE;
@@ -662,19 +769,32 @@ class Game {
         this.renderCherry(this.cherryPos.r, this.cherryPos.c);
         this.cherryVisible = true;
 
-        // Kirsikka on näkyvissä kiinteän ajan, jonka jälkeen se alkaa vilkkua.
-        this.cherryTimer = setTimeout(() => {
-            if (this.cherry && !this.cherry.eaten) {
-                this.cherry.element.classList.add('blinking');
-                // Varmistetaan että CSS-animaatio vastaa vakiota
-                this.cherry.element.style.animationDuration = `${CHERRY_BLINK_MS}ms`;
-            }
+        // Kirsikan elinaika yhteensä (näkyvyys + vilkkuminen)
+        this.cherryTimerMs = CHERRY_VISIBLE_MS + (CHERRY_BLINK_MS * CHERRY_BLINK_COUNT);
+        this.isCherryBlinking = false;
+    }
 
-            // Kirsikka poistuu kun se on välkähtänyt halutun määrän
-            this.cherryTimer = setTimeout(() => {
-                this.hideCherry();
-            }, CHERRY_BLINK_MS * CHERRY_BLINK_COUNT);
-        }, CHERRY_VISIBLE_MS);
+    updateCherry(dt) {
+        if (!this.cherryVisible || this.cherryDealtWith || !this.cherry) return;
+
+        const elapsedMs = dt * (1000 / 60);
+        this.cherryTimerMs -= elapsedMs;
+
+        // Vilkkumisaika on yhteensä 2.5 sekuntia (5 x 500ms sykli)
+        const blinkThreshold = CHERRY_BLINK_MS * CHERRY_BLINK_COUNT;
+
+        if (this.cherryTimerMs <= blinkThreshold && this.cherryTimerMs > 0) {
+            // Lasketaan vilkkumisvaihe: 500ms sykli jaettuna kahteen osaan (250ms päällä, 250ms pois)
+            // Käytetään Math.floor ja moduloa määrittämään ollaanko syklin alkavassa vai päättyvässä puoliskossa
+            const cyclePhase = Math.floor(this.cherryTimerMs / (CHERRY_BLINK_MS / 2));
+            const isVisible = cyclePhase % 2 === 0; // Aloitetaan piilossa (vaihe 9), lopetetaan näkyvissä (vaihe 0)
+            this.cherry.element.setAttribute("visibility", isVisible ? "visible" : "hidden");
+        }
+
+        // Kirsikka poistuu kun aika loppuu kokonaan
+        if (this.cherryTimerMs <= 0) {
+            this.hideCherry();
+        }
     }
 
     hideCherry() {
@@ -692,6 +812,7 @@ class Game {
         if (this.livesElement) {
             this.livesElement.textContent = this.lives;
         }
+        this.checkNewHighScore();
     }
 
 
@@ -762,6 +883,7 @@ class Game {
         if (this.gameRunning) {
             this.update(deltaTime);
             this.updateGhosts(deltaTime);
+            this.updateCherry(deltaTime); // Päivitetään kirsikkaa vain kun peli käy
         }
         requestAnimationFrame((t) => this.gameLoop(t));
     }
@@ -865,6 +987,11 @@ class Game {
             if (!this.cherryVisible && !this.cherryDealtWith && (eatenDots / totalDots) >= 0.4) {
                 this.spawnCherry();
             }
+
+            // Tila C: Tarkistetaan voitto kun kaikki pisteet on syöty
+            if (this.gameMode === 'C' && eatenDots === totalDots) {
+                this.triggerWin();
+            }
         }
     }
 
@@ -945,9 +1072,9 @@ class Game {
         this.gameRunning = false;
 
         if (this.lives <= 0) {
-            this.loseOverlay.classList.remove('hidden');
+            this.showOverlay('lose-overlay');
         } else {
-            this.deathOverlay.classList.remove('hidden');
+            this.showOverlay('death-overlay');
         }
     }
 
@@ -968,6 +1095,8 @@ class Game {
     }
 
     checkWin() {
+        if (this.gameMode === 'C') return; // C-tilassa voitto tarkistetaan pisteistä
+
         if (this.player.x === GRID_SIZE - 1 && this.player.y === GRID_SIZE - 1) {
             // Oletetaan että voitto on voimassa kun ollaan tarpeeksi lähellä maalin keskipistettä
             const targetX = (GRID_SIZE - 0.5) * CELL_SIZE;
@@ -975,13 +1104,18 @@ class Game {
             const d = Math.sqrt((this.player.pixelX - targetX) ** 2 + (this.player.pixelY - targetY) ** 2);
 
             if (d < 5 && this.gameRunning) {
-                this.gameRunning = false;
-                this.score += SCORE_GOAL;
-                this.updateScoreUI();
-                this.winOverlay.classList.remove('hidden');
+                this.triggerWin();
             }
-
         }
+    }
+
+    triggerWin() {
+        if (!this.gameRunning) return;
+        this.gameRunning = false;
+        this.score += SCORE_GOAL;
+        this.updateScoreUI();
+        this.checkNewHighScore(); // Varmistetaan ennätys voiton jälkeen
+        this.showOverlay('win-overlay');
     }
 }
 

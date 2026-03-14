@@ -279,6 +279,14 @@ header h1 {
     transition: opacity 0.3s ease;
 }
 
+.hidden {
+    display: none !important;
+}
+
+.game-paused #game-board * {
+    animation-play-state: paused !important;
+}
+
 .overlay.hidden {
     display: none;
     opacity: 0;
@@ -394,16 +402,4 @@ button:active {
     animation: pulseMaali 2s infinite ease-in-out;
 }
 
-@keyframes blink {
-    0% {
-        opacity: 0;
-    }
-
-    50% {
-        opacity: 1;
-    }
-}
-
-.blinking {
-    animation: blink 0.5s infinite step-end;
-}
+/* Cherry animations removed - handled in JS */
