@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pac-Maze</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <button id="menu-toggle" class="mobile-only-flex" aria-label="Valikko">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <div class="game-container">
+        <header class="glass-panel">
+            <h1>Pac-Maze</h1>
+            <div class="header-right">
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="label">Kenttä:</span>
+                        <span id="level-count" class="value">1</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main id="game-board">
+            <svg id="maze-svg" viewBox="-5 -5 410 410" preserveAspectRatio="xMidYMid meet">
+                <!-- Maze and entities will be rendered here -->
+            </svg>
+        </main>
+
+        <div id="mobile-controls" class="mobile-only">
+            <div class="joystick">
+                <div class="sector up" id="ctrl-up"></div>
+                <div class="sector right" id="ctrl-right"></div>
+                <div class="sector down" id="ctrl-down"></div>
+                <div class="sector left" id="ctrl-left"></div>
+                <div class="center-dot"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Start Menu overlay -->
+    <div id="start-menu" class="overlay">
+        <div class="glass-panel celebration">
+            <h2>Pac-Maze</h2>
+            <p>Valitse pelitila:</p>
+            <div class="menu-buttons">
+                <button id="mode-a-btn">A: Sokkelo (Ei kummituksia)</button>
+                <button id="mode-b-btn">B: Klassinen (Kummitukset & oikotiet)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Celebration overlay -->
+    <div id="win-overlay" class="overlay hidden">
+        <div class="glass-panel celebration">
+            <h2>Hienoa!</h2>
+            <p>Labyrintti selvitetty.</p>
+            <button id="next-level-btn">Seuraava kenttä</button>
+        </div>
+    </div>
+
+    <script src="maze.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
