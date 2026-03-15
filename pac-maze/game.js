@@ -66,7 +66,7 @@ class Game {
         this.menuIndex = 0; // Aktiivinen nappi
         this.gameMode = 'A'; // 'A', 'B' tai 'C'
 
-        this.loadDailyHighScores();
+        this.loadHighScores();
 
         this.isMoving = false;
         this.gameRunning = false; // Aloitetaan pysäytettynä
@@ -97,6 +97,43 @@ class Game {
         document.body.classList.remove('game-paused'); // Käynnistetään animaatiot
     }
 
+    /**
+     * Näyttää yleiskäyttöisen varmistusdialogin.
+     * @param {string} title - Dialogin otsikko
+     * @param {string} message - Dialogin teksti
+     * @param {function} onConfirm - Funktio jota kutsutaan jos käyttäjä vahvistaa
+     */
+    showConfirm(title, message, onConfirm) {
+        const overlay = document.getElementById('confirm-overlay');
+        if (!overlay) return;
+
+        overlay.querySelector('h2').textContent = title;
+        overlay.querySelector('p').textContent = message;
+
+        const confirmBtn = document.getElementById('confirm-yes-btn');
+        const cancelBtn = document.getElementById('confirm-no-btn');
+
+        // Poistetaan vanhat listenerit kloonaamalla
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+        newConfirmBtn.addEventListener('click', () => {
+            onConfirm();
+            this.hideAllOverlays();
+            // Palataan alkuperäiseen valikkoon jos tarpeen (tässä tapauksessa oletetaan että oltiin valikossa)
+            this.showOverlay('start-menu');
+        });
+
+        newCancelBtn.addEventListener('click', () => {
+            this.hideAllOverlays();
+            this.showOverlay('start-menu');
+        });
+
+        this.showOverlay('confirm-overlay');
+    }
+
     updateMenuButtonsVisibility() {
         const continueBtn = document.getElementById('continue-game-btn');
         const continueDivider = document.getElementById('continue-divider');
@@ -112,33 +149,20 @@ class Game {
         }
     }
 
-    loadDailyHighScores() {
-        const today = new Date().toISOString().split('T')[0];
-        const stored = localStorage.getItem('pac-maze-highscores');
+    loadHighScores() {
+        const stored = localStorage.getItem('pac-maze-highscores-persistent');
 
         if (stored) {
-            const data = JSON.parse(stored);
-            if (data.date === today) {
-                this.highScores = data.scores;
-            } else {
-                // Uusi päivä, nollataan ennätykset
-                this.highScores = { A: 0, B: 0, C: 0 };
-                this.saveHighScores(today);
-            }
+            this.highScores = JSON.parse(stored);
         } else {
             this.highScores = { A: 0, B: 0, C: 0 };
-            this.saveHighScores(today);
+            this.saveHighScores();
         }
         this.updateHighScoreUI();
     }
 
-    saveHighScores(dateOverride) {
-        const today = dateOverride || new Date().toISOString().split('T')[0];
-        const data = {
-            date: today,
-            scores: this.highScores
-        };
-        localStorage.setItem('pac-maze-highscores', JSON.stringify(data));
+    saveHighScores() {
+        localStorage.setItem('pac-maze-highscores-persistent', JSON.stringify(this.highScores));
     }
 
     checkNewHighScore() {
@@ -247,6 +271,9 @@ class Game {
                         this.continueLevel();
                     } else if (activeOverlay.id === 'lose-overlay') {
                         this.goToMainMenu();
+                    } else if (activeOverlay.id === 'confirm-overlay') {
+                        this.hideAllOverlays();
+                        this.showOverlay('start-menu');
                     }
                 } else {
                     // Jos mikään ei ole auki, avataan taukopäävalikko
@@ -405,6 +432,24 @@ class Game {
             }
         });
 
+        // Ennätysten nollaus
+        const resetBtn = document.getElementById('reset-scores-btn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                this.showConfirm(
+                    "Nollataanko ennätykset?",
+                    "Kaikki saavutetut ennätykset poistetaan pysyvästi.",
+                    () => {
+                        this.highScores = { A: 0, B: 0, C: 0 };
+                        this.saveHighScores();
+                        this.updateHighScoreUI();
+                        // Jos olemme valikossa, päivitetään näkyvä luku heti
+                        this.updateMenuHighlight();
+                    }
+                );
+            });
+        }
+
         // Hampurilaisvalikko mobiilissa
         const menuToggle = document.getElementById('menu-toggle');
         if (menuToggle) {
@@ -503,6 +548,15 @@ class Game {
         this.score = 0;
         this.lives = INITIAL_LIVES;
         this.levelLabel.textContent = this.level;
+
+        // Piilotetaan elämät tilassa A
+        if (this.livesElement) {
+            const livesItem = this.livesElement.closest('.stat-item');
+            if (livesItem) {
+                livesItem.style.display = (this.gameMode === 'A') ? 'none' : 'flex';
+            }
+        }
+
         this.init();
         this.gameRunning = true;
     }
@@ -981,10 +1035,10 @@ class Game {
             this.score += SCORE_DOT;
             this.updateScoreUI();
 
-            // Tarkistetaan kirsikan ilmestyminen (40% pisteistä kerätty)
+            // Tarkistetaan kirsikan ilmestyminen (50% pisteistä kerätty)
             const totalDots = this.dots.length;
             const eatenDots = this.dots.filter(d => d.eaten).length;
-            if (!this.cherryVisible && !this.cherryDealtWith && (eatenDots / totalDots) >= 0.4) {
+            if (!this.cherryVisible && !this.cherryDealtWith && (eatenDots / totalDots) >= 0.5) {
                 this.spawnCherry();
             }
 

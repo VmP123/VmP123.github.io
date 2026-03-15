@@ -23,7 +23,7 @@
         <div class="header-right">
             <div class="stats">
                 <div class="stat-item">
-                    <span class="label">Päivän ennätys</span>
+                    <span class="label">Ennätys</span>
                     <span id="highscore-count" class="value">0</span>
                 </div>
                 <div class="stat-item">
@@ -63,6 +63,19 @@
             <button id="mode-c-btn">C: Kerää kaikki</button>
             <div class="menu-divider"></div>
             <button id="fullscreen-btn" class="secondary-btn">Koko ruutu: Pois</button>
+            <button id="reset-scores-btn" class="secondary-btn danger-btn">Nollaa ennätykset</button>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Overlay (Reusable) -->
+<div id="confirm-overlay" class="overlay hidden">
+    <div class="glass-panel celebration">
+        <h2>Varmistus</h2>
+        <p>Oletko varma?</p>
+        <div class="menu-buttons">
+            <button id="confirm-yes-btn">Kyllä</button>
+            <button id="confirm-no-btn" class="secondary-btn">Peruuta</button>
         </div>
     </div>
 </div>

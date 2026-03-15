@@ -381,6 +381,13 @@ screen and (max-width: 600px) {
     box-shadow: 0 0 15px rgba(252, 224, 71, 0.2);
 }
 
+.menu-buttons button.danger-btn:hover,
+.menu-buttons button.danger-btn.focused {
+    background: #ef4444 !important;
+    color: white !important;
+    border-color: #ef4444;
+}
+
 button {
     background: var(--accent-color);
     color: #000;
