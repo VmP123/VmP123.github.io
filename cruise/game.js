@@ -140,8 +140,31 @@ class Game {
         this.gameLoop(0);
     }
 
+    checkDailyReset() {
+        const today = new Date().toDateString();
+        const savedDate = localStorage.getItem('cruise_highscore_date');
+
+        if (savedDate !== today) {
+            localStorage.setItem('cruise_highscore_today', '0');
+            localStorage.setItem('cruise_highscore_date', today);
+        }
+    }
+
     gameOver() {
         this.gameState = 'gameOver';
+        this.checkDailyReset();
+
+        // Päivän ennätys
+        const todayHigh = parseInt(localStorage.getItem('cruise_highscore_today') || '0');
+        if (this.points > todayHigh) {
+            localStorage.setItem('cruise_highscore_today', this.points.toString());
+        }
+
+        // Kaikkien aikojen ennätys
+        const allTimeHigh = parseInt(localStorage.getItem('cruise_highscore_alltime') || '0');
+        if (this.points > allTimeHigh) {
+            localStorage.setItem('cruise_highscore_alltime', this.points.toString());
+        }
     }
 
     gameLoop(currentTime) {
@@ -594,11 +617,11 @@ class WarningTriangle extends BaseObstacle {
         };
 
         var mainColor = this.game.UI_COLOR_RED; //'#ff0000';
-        var edgeColor =  "#ffffff" //"#fab906" //"#eafa06"; this.game.UI_COLOR_YELLOW;
+        var edgeColor = "#ffffff" //"#fab906" //"#eafa06"; this.game.UI_COLOR_YELLOW;
         var roadColor = '#666';
 
         // Ulompi kolmio (punainen)
-        ctx.fillStyle =  mainColor 
+        ctx.fillStyle = mainColor
         drawRoundedTriangle(triangleCenterX, triangleCenterY, triangleSize, cornerRadius);
         ctx.fill();
 
@@ -749,7 +772,7 @@ class ObstacleManager {
             // Luodaan ehdokaseste (puomi, varoituskolmio+pysähtynyt auto, tai liikkuva auto)
             let newObs;
             const rand = Math.random();
-            
+
             if (this.game.currentTraficSign === 'speed_50') {
                 if (rand < 0.1) {
                     newObs = new RoadBlock(this.game, lane);
@@ -776,7 +799,7 @@ class ObstacleManager {
                     newObs.scored = true; // Kolmio ja auto yhdessä antavat vain yhden pisteen
                     this.obstacles.push(new StoppedCar(this.game, lane, newObs.y - 140));
                 }
-                
+
                 this.obstacles.push(newObs);
             }
         }
@@ -869,14 +892,14 @@ class Scenery {
     constructor(game) {
         this.game = game;
         this.sceneryObjects = [];
-        
+
         // Määritetään "hihna", jolle puut asetetaan. 
         // Sen pitää olla reilusti ruutua pidempi (BASE_HEIGHT + buffer),
         // jotta ylin puu on varmasti kokonaan piilossa (runkoineen päivineen).
         // Puun korkeus on n. 40-50px, joten 300px puskuri on turvallinen.
-        const buffer = 300; 
+        const buffer = 300;
         const totalHeight = this.game.BASE_HEIGHT + buffer;
-        
+
         // Lasketaan välimatka tälle pidennetylle alueelle.
         this.spacing = totalHeight / this.game.SCENERY_COUNT;
 
@@ -884,10 +907,10 @@ class Scenery {
             // Aloitetaan luominen hieman ruudun alareunan alapuolelta (+50px),
             // jotta puut eivät lopu kesken alhaalta heti pelin alkaessa.
             const startOffset = 50;
-            
+
             // Lasketaan sijainti: Alhaalta ylöspäin.
             const y = (this.game.BASE_HEIGHT + startOffset) - (i * this.spacing);
-            
+
             this.sceneryObjects.push(this.createRandomObject(y));
         }
     }
@@ -903,13 +926,13 @@ class Scenery {
 
             // Kierrätys: Kun puu on mennyt riittävän alas (ruudun korkeus + pieni marginaali)
             if (obj.y > this.game.BASE_HEIGHT + 100) {
-                
+
                 // Etsitään, missä kohtaa ylin puu (pienin y) tällä hetkellä menee.
                 const minY = Math.min(...this.sceneryObjects.map(o => o.y));
-                
+
                 // Asetetaan uusi puu jonon jatkoksi yläpäähän.
                 const newY = minY - this.spacing;
-                
+
                 this.sceneryObjects[i] = this.createRandomObject(newY);
             }
         }
@@ -1053,20 +1076,29 @@ class UI {
 
     drawGameOver() {
         const { canvas, points, isMobile } = this.game;
+        this.game.checkDailyReset(); // Varmistetaan ajan tasalla oleva tieto
+
+        const todayHigh = localStorage.getItem('cruise_highscore_today') || points;
+        const allTimeHigh = localStorage.getItem('cruise_highscore_alltime') || points;
 
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
         this.ctx.fillRect(0, 0, canvas.width, canvas.height);
         this.ctx.fillStyle = 'white';
         this.ctx.textAlign = 'center';
+
         this.ctx.font = `bold ${48 * this.scaleH}px ${this.game.UI_FONT_PRIMARY}`;
-        this.ctx.fillText('PELI OHI', canvas.width / 2, canvas.height / 2 - 40 * this.scaleH);
+        this.ctx.fillText('PELI OHI', canvas.width / 2, canvas.height / 2 - 60 * this.scaleH);
 
         this.ctx.font = `${24 * this.scaleH}px ${this.game.UI_FONT_PRIMARY}`;
-        this.ctx.fillText(`Lopulliset pisteet: ${points}`, canvas.width / 2, canvas.height / 2 + 10 * this.scaleH);
+        this.ctx.fillText(`Lopulliset pisteet: ${points}`, canvas.width / 2, canvas.height / 2);
+
+        this.ctx.font = `${18 * this.scaleH}px ${this.game.UI_FONT_PRIMARY}`;
+        this.ctx.fillText(`Tämän päivän ennätyksesi: ${todayHigh}`, canvas.width / 2, canvas.height / 2 + 40 * this.scaleH);
+        this.ctx.fillText(`Kaikkien aikojen ennätyksesi: ${allTimeHigh}`, canvas.width / 2, canvas.height / 2 + 65 * this.scaleH);
 
         this.ctx.font = `${20 * this.scaleH}px ${this.game.UI_FONT_PRIMARY}`;
         const actionText = isMobile() ? 'Kosketa näyttöä' : 'Paina Enter';
-        this.ctx.fillText(`${actionText} aloittaaksesi uudelleen`, canvas.width / 2, canvas.height / 2 + 60 * this.scaleH);
+        this.ctx.fillText(`${actionText} aloittaaksesi uudelleen`, canvas.width / 2, canvas.height / 2 + 110 * this.scaleH);
     }
 
     drawTraficSigns() {
