@@ -10,6 +10,8 @@ class Game {
         this.animationFrameId = null;
         this.lastTime = 0;
         this.showStartText = false;
+        this.todayHighScore = 0;
+        this.allTimeHighScore = 0;
 
         this.ui = new UI(this);
         this.handleResize();
@@ -155,16 +157,21 @@ class Game {
         this.checkDailyReset();
 
         // Päivän ennätys
-        const todayHigh = parseInt(localStorage.getItem('cruise_highscore_today') || '0');
+        let todayHigh = parseInt(localStorage.getItem('cruise_highscore_today') || '0', 10);
         if (this.points > todayHigh) {
+            todayHigh = this.points;
             localStorage.setItem('cruise_highscore_today', this.points.toString());
         }
 
         // Kaikkien aikojen ennätys
-        const allTimeHigh = parseInt(localStorage.getItem('cruise_highscore_alltime') || '0');
+        let allTimeHigh = parseInt(localStorage.getItem('cruise_highscore_alltime') || '0', 10);
         if (this.points > allTimeHigh) {
+            allTimeHigh = this.points;
             localStorage.setItem('cruise_highscore_alltime', this.points.toString());
         }
+
+        this.todayHighScore = todayHigh;
+        this.allTimeHighScore = allTimeHigh;
     }
 
     gameLoop(currentTime) {
@@ -179,8 +186,11 @@ class Game {
             this.ui.drawStartScreen();
         } else if (this.gameState === 'playing') {
             if (this.lastTime === 0) this.lastTime = currentTime;
-            const dt = (currentTime - this.lastTime) / 1000;
+            let dt = (currentTime - this.lastTime) / 1000;
             this.lastTime = currentTime;
+
+            // Rajataan dt enintään 100 millisekuntiin (0.1s) estämään fysiikkahypyt lagipiikeissä
+            dt = Math.min(dt, 0.1);
 
             this.update(dt);
             this.draw();
@@ -383,12 +393,19 @@ class GameObject {
         ctx.roundRect(roofX, roofY, roofW, roofH, roofRadius);
         ctx.fill();
 
-        // Takavalot hehkulla
+        // Takavalot
+        const lightW = 11 * game.scaleW;
+        const lightH = 5.5 * game.scaleH;
+        const lightRadius = 1 * game.scaleW;
+        const light1X = rx + 4 * game.scaleW;
+        const light2X = rx + sw - 4 * game.scaleW - lightW;
+        const lightY = ry + sh - 10 * game.scaleH;
+
         ctx.fillStyle = game.TAIL_LIGHTS_COLOR;
-        ctx.shadowBlur = 12 * game.scaleW;
-        ctx.shadowColor = 'rgba(255, 0, 0, 0.8)';
-        ctx.fillRect(rx + 4 * game.scaleW, ry + sh - 10 * game.scaleH, 10 * game.scaleW, 5 * game.scaleW);
-        ctx.fillRect(rx + sw - 14 * game.scaleW, ry + sh - 10 * game.scaleH, 10 * game.scaleW, 5 * game.scaleW);
+        ctx.beginPath();
+        ctx.roundRect(light1X, lightY, lightW, lightH, lightRadius);
+        ctx.roundRect(light2X, lightY, lightW, lightH, lightRadius);
+        ctx.fill();
 
         ctx.restore();
     }
@@ -848,6 +865,11 @@ class SceneryObject {
         }
     }
 
+    reset(yPos) {
+        this.y = yPos;
+        this.setRandomX();
+    }
+
     update(dt, roadSpeed) {
         this.y += roadSpeed * dt;
     }
@@ -861,6 +883,11 @@ class Tree extends SceneryObject {
         super(game, yPos);
         this.radius = Math.random() * 15 + 10;
         this.trunkWidth = 8;
+    }
+
+    reset(yPos) {
+        super.reset(yPos);
+        this.radius = Math.random() * 15 + 10;
     }
 
     draw() {
@@ -903,52 +930,36 @@ class Scenery {
         // Lasketaan välimatka tälle pidennetylle alueelle.
         this.spacing = totalHeight / this.game.SCENERY_COUNT;
 
-        for (let i = 0; i < this.game.SCENERY_COUNT; i++) {
-            // Aloitetaan luominen hieman ruudun alareunan alapuolelta (+50px),
-            // jotta puut eivät lopu kesken alhaalta heti pelin alkaessa.
-            const startOffset = 50;
-
-            // Lasketaan sijainti: Alhaalta ylöspäin.
+        // Alustetaan puut valmiiksi Y-koordinaatin mukaan nousevassa järjestyksessä (pienin Y ensin)
+        const startOffset = 50;
+        for (let i = this.game.SCENERY_COUNT - 1; i >= 0; i--) {
             const y = (this.game.BASE_HEIGHT + startOffset) - (i * this.spacing);
-
-            this.sceneryObjects.push(this.createRandomObject(y));
+            this.sceneryObjects.push(new Tree(this.game, y));
         }
     }
 
-    createRandomObject(yPos) {
-        return new Tree(this.game, yPos);
-    }
-
     update(dt, roadSpeed) {
+        const threshold = this.game.BASE_HEIGHT + 100;
         for (let i = 0; i < this.sceneryObjects.length; i++) {
-            const obj = this.sceneryObjects[i];
-            obj.update(dt, roadSpeed);
+            this.sceneryObjects[i].update(dt, roadSpeed);
+        }
 
-            // Kierrätys: Kun puu on mennyt riittävän alas (ruudun korkeus + pieni marginaali)
-            if (obj.y > this.game.BASE_HEIGHT + 100) {
-
-                // Etsitään, missä kohtaa ylin puu (pienin y) tällä hetkellä menee.
-                const minY = Math.min(...this.sceneryObjects.map(o => o.y));
-
-                // Asetetaan uusi puu jonon jatkoksi yläpäähän.
-                const newY = minY - this.spacing;
-
-                this.sceneryObjects[i] = this.createRandomObject(newY);
-            }
+        // Kierrätys: alin puu (suurin Y) on aina taulukon lopussa.
+        // Jos se ylittää alareunan, siirretään ja nollataan se taulukon alkuun (pienimmäksi Y-arvoksi).
+        while (this.sceneryObjects.length > 0 && this.sceneryObjects[this.sceneryObjects.length - 1].y > threshold) {
+            const recycled = this.sceneryObjects.pop();
+            const topY = this.sceneryObjects[0].y;
+            recycled.reset(topY - this.spacing);
+            this.sceneryObjects.unshift(recycled);
         }
     }
 
     draw() {
         this.drawGround();
-
-        // Luodaan väliaikainen kopio listasta ja järjestetään se Y-koordinaatin mukaan nousevasti.
-        // [...this.sceneryObjects] luo kopion (shallow copy), jotta emme sekoita alkuperäisen
-        // listan järjestystä, jota update-metodi saattaa käyttää.
-        const objectsToDraw = [...this.sceneryObjects].sort((a, b) => a.y - b.y);
-
-        // Piirretään järjestetyssä järjestyksessä:
-        // Pienin Y (kauimmainen) ensin, suurin Y (lähin) viimeisenä.
-        objectsToDraw.forEach(obj => obj.draw());
+        // Puut ovat aina järjestyksessä (pienin Y ensin), joten erillistä kloonausta tai sort()-kutsua ei tarvita
+        for (let i = 0; i < this.sceneryObjects.length; i++) {
+            this.sceneryObjects[i].draw();
+        }
     }
 
     drawGround() {
@@ -1075,11 +1086,7 @@ class UI {
     }
 
     drawGameOver() {
-        const { canvas, points, isMobile } = this.game;
-        this.game.checkDailyReset(); // Varmistetaan ajan tasalla oleva tieto
-
-        const todayHigh = localStorage.getItem('cruise_highscore_today') || points;
-        const allTimeHigh = localStorage.getItem('cruise_highscore_alltime') || points;
+        const { canvas, points, isMobile, todayHighScore, allTimeHighScore } = this.game;
 
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
         this.ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1093,8 +1100,8 @@ class UI {
         this.ctx.fillText(`Lopulliset pisteet: ${points}`, canvas.width / 2, canvas.height / 2);
 
         this.ctx.font = `${18 * this.scaleH}px ${this.game.UI_FONT_PRIMARY}`;
-        this.ctx.fillText(`Tämän päivän ennätyksesi: ${todayHigh}`, canvas.width / 2, canvas.height / 2 + 40 * this.scaleH);
-        this.ctx.fillText(`Kaikkien aikojen ennätyksesi: ${allTimeHigh}`, canvas.width / 2, canvas.height / 2 + 65 * this.scaleH);
+        this.ctx.fillText(`Tämän päivän ennätyksesi: ${todayHighScore ?? points}`, canvas.width / 2, canvas.height / 2 + 40 * this.scaleH);
+        this.ctx.fillText(`Kaikkien aikojen ennätyksesi: ${allTimeHighScore ?? points}`, canvas.width / 2, canvas.height / 2 + 65 * this.scaleH);
 
         this.ctx.font = `${20 * this.scaleH}px ${this.game.UI_FONT_PRIMARY}`;
         const actionText = isMobile() ? 'Kosketa näyttöä' : 'Paina Enter';
